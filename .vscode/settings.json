@@ -1,0 +1,26 @@
+{
+    "files.associations": {
+        "atomic": "c",
+        "charconv": "c",
+        "cstring": "c",
+        "vector": "c",
+        "xmemory": "c",
+        "xstring": "c",
+        "xutility": "c",
+        "log.h": "c",
+        "system_error": "cpp",
+        "stdio.h": "c",
+        "windowsx.h": "c",
+        "platform.h": "c",
+        "array": "cpp",
+        "iterator": "cpp",
+        "format": "cpp",
+        "initializer_list": "cpp",
+        "span": "cpp",
+        "utility": "cpp",
+        "xtree": "cpp",
+        "xlocale": "cpp",
+        "memory.h": "c",
+        "arena.h": "c"
+    }
+}
