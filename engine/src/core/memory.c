@@ -9,6 +9,7 @@ static const char* memory_strings[MEMORY_TAG_COUNT] =
     "NONE\t\t",
     "GAME\t\t",
     "DYNARRAY\t",
+    "INPUTDEVICE\t",
     "CUSTOM\t\t",
 };
 

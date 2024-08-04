@@ -21,6 +21,7 @@
         "xtree": "cpp",
         "xlocale": "cpp",
         "memory.h": "c",
-        "arena.h": "c"
+        "arena.h": "c",
+        "input_keyboard.h": "c"
     }
 }

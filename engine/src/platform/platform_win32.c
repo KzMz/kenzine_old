@@ -3,6 +3,7 @@
 #if KZ_PLATFORM_WINDOWS == 1
 
 #include "core/log.h"
+#include "core/input/input.h"
 
 #include <windows.h>
 #include <windowsx.h>
@@ -204,27 +205,27 @@ LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPA
         case WM_KEYUP:
         case WM_SYSKEYUP: 
         {
-            //bool pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
+            bool pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
+            KeyboardKeys key = (u16) w_param;
 
-            // TODO: keyboard input processing
+            input_process_key(KEYBOARD_DEVICE_ID, key, pressed);
         } break;
         case WM_MOUSEMOVE: 
         {
-            //i32 x = GET_X_LPARAM(l_param);
-            //i32 y = GET_Y_LPARAM(l_param);
+            i32 x = GET_X_LPARAM(l_param);
+            i32 y = GET_Y_LPARAM(l_param);
 
-            // TODO: mouse input processing
+            mouse_process_mouse_move(x, y);
         } break;
         case WM_MOUSEWHEEL: 
         {
-            /*i32 delta = GET_WHEEL_DELTA_WPARAM(w_param);
+            i32 delta = GET_WHEEL_DELTA_WPARAM(w_param);
             if (delta != 0)
             {
                 // flatten input
                 delta = (delta > 0) ? 1 : -1;
-            }*/
-
-            // TODO: mouse input processing
+                mouse_process_mouse_wheel(delta);
+            }
         } break;
         case WM_LBUTTONDOWN:
         case WM_MBUTTONDOWN:
@@ -233,8 +234,28 @@ LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPA
         case WM_MBUTTONUP:
         case WM_RBUTTONUP:
         {
-            //bool pressed = (msg == WM_LBUTTONDOWN || msg == WM_MBUTTONDOWN || msg == WM_RBUTTONDOWN);
-            // TODO: mouse input processing
+            bool pressed = (msg == WM_LBUTTONDOWN || msg == WM_MBUTTONDOWN || msg == WM_RBUTTONDOWN);
+            MouseButton button = MOUSE_BUTTON_COUNT;
+            switch (msg)
+            {
+                case WM_LBUTTONDOWN:
+                case WM_LBUTTONUP:
+                    button = MOUSE_BUTTON_LEFT;
+                    break;
+                case WM_MBUTTONDOWN:
+                case WM_MBUTTONUP:
+                    button = MOUSE_BUTTON_MIDDLE;
+                    break;
+                case WM_RBUTTONDOWN:
+                case WM_RBUTTONUP:
+                    button = MOUSE_BUTTON_RIGHT;
+                    break;
+            }
+
+            if (button != MOUSE_BUTTON_COUNT)
+            {
+                input_process_key(MOUSE_DEVICE_ID, button, pressed);
+            }
         } break;
     }
 

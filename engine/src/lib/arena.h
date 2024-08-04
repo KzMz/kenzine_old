@@ -11,7 +11,7 @@ typedef struct Region
     u64 current_size;
     u64 max_size;
     bool aligned;
-    u8* data;
+    u8 data[];
 } Region;
 
 typedef struct Arena 

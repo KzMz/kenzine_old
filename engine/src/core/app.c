@@ -3,6 +3,7 @@
 #include "game_defines.h"
 #include "core/memory.h"
 #include "core/event.h"
+#include "core/input/input.h"
 
 typedef struct AppState
 {
@@ -18,6 +19,9 @@ typedef struct AppState
 static bool initialized = false;
 static AppState state = {0};
 
+bool app_on_event(u16 code, void* sender, void* listener, EventContext context);
+bool app_on_key(u16 code, void* sender, void* linster, EventContext context);
+
 KENZINE_API bool app_init(Game* game)
 {
     if (initialized)
@@ -30,6 +34,7 @@ KENZINE_API bool app_init(Game* game)
 
     // Subsystems
     log_init();
+    input_init();
 
     state.running = true;
     state.suspended = false;
@@ -39,6 +44,10 @@ KENZINE_API bool app_init(Game* game)
         log_error("Failed to initialize event system");
         return false;
     }
+
+    event_subscribe(EVENT_CODE_APPLICATION_QUIT, 0, app_on_event);
+    event_subscribe(EVENT_CODE_KEY_PRESSED, 0, app_on_key);
+    event_subscribe(EVENT_CODE_KEY_RELEASED, 0, app_on_key);    
 
     if (!platform_init(
         &state.platform, 
@@ -96,6 +105,8 @@ KENZINE_API bool app_run(void)
                 state.running = false;
                 break;
             }
+
+            input_update((f64) 0);
         }
     }
 
@@ -114,7 +125,43 @@ KENZINE_API void app_shutdown(void)
     state.game->shutdown(state.game);
     state.running = false;
 
+    event_unsubscribe(EVENT_CODE_APPLICATION_QUIT, 0, app_on_event);
+    event_unsubscribe(EVENT_CODE_KEY_PRESSED, 0, app_on_key);
+    event_unsubscribe(EVENT_CODE_KEY_RELEASED, 0, app_on_key);
+
     event_system_shutdown();
+
+    input_shutdown();
     platform_shutdown(&state.platform);
     log_shutdown();
+}
+
+bool app_on_event(u16 code, void* sender, void* listener, EventContext context)
+{
+    switch (code)
+    {
+        case EVENT_CODE_APPLICATION_QUIT: 
+        {
+            log_info("Application quit event received");
+            state.running = false;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool app_on_key(u16 code, void* sender, void* linster, EventContext context)
+{
+    if (code == EVENT_CODE_KEY_PRESSED)
+    {
+        u16 key_code = context.data.u16[0];
+        if (key_code == KEY_ESCAPE)
+        {
+            event_trigger(EVENT_CODE_APPLICATION_QUIT, 0, (EventContext) {0});
+            return true;
+        }
+    }
+
+    return false;
 }

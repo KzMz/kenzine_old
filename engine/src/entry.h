@@ -28,13 +28,6 @@ int main(void)
         return -2;
     }
 
-    AppConfig config = {0};
-    config.name = "Kenzine Playground";
-    config.width = 1200;
-    config.height = 720;
-    config.start_x = 100;
-    config.start_y = 100;
-
     if (!app_init(&game))
     {
         log_warning("Failed to initialize app");

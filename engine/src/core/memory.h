@@ -8,6 +8,7 @@ typedef enum MemoryTag
     MEMORY_TAG_NONE = 0,
     MEMORY_TAG_GAME,
     MEMORY_TAG_DYNARRAY,
+    MEMORY_TAG_INPUTDEVICE,
 
     MEMORY_TAG_CUSTOM,
 
