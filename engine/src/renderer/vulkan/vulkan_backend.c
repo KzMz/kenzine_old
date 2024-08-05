@@ -5,9 +5,9 @@
 #include "lib/containers/dyn_array.h"
 #include "platform/platform.h"
 #include "vulkan_platform.h"
+#include "vulkan_device.h"
 
 static VulkanContext context = {0};
-
 
 VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -108,12 +108,28 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
     log_debug("Vulkan debugger created.");
 #endif
 
+    log_debug("Creating Vulkan surface...");
+    if (!platform_create_vulkan_surface(platform, &context))
+    {
+        log_fatal("Failed to create Vulkan surface.");
+        return false;
+    }
+    log_debug("Vulkan surface created.");
+
+    if (!vulkan_device_create(&context))
+    {
+        log_fatal("Failed to create Vulkan device.");
+        return false;
+    }
+
     log_info("Vulkan renderer initialized successfully.");
     return true;
 }
 
 void vulkan_renderer_backend_shutdown(RendererBackend* backend)
 {
+    vulkan_device_destroy(&context);
+
 #if defined(_DEBUG)
     log_debug("Destroying Vulkan debugger...");
     if (context.debug_messenger)

@@ -5,14 +5,17 @@
 #include "core/log.h"
 #include "core/input/input.h"
 #include "lib/containers/dyn_array.h"
+#include "renderer/vulkan/vulkan_defines.h"
 
 #include <windows.h>
 #include <windowsx.h>
+#include <vulkan/vulkan_win32.h>
 
 typedef struct PlatformState
 {
     HINSTANCE h_instance;
     HWND h_window;
+    VkSurfaceKHR surface;
 } PlatformState;
 
 // Clock
@@ -183,6 +186,20 @@ void platform_sleep(u64 ms)
 void platform_get_required_extension_names(const char*** extension_names)
 {
     dynarray_push(*extension_names, &"VK_KHR_win32_surface");
+}
+
+bool platform_create_vulkan_surface(Platform* platform, VulkanContext* context)
+{
+    PlatformState* state = (PlatformState*) platform->state;
+
+    VkWin32SurfaceCreateInfoKHR surface_create_info = {VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
+    surface_create_info.hinstance = state->h_instance;
+    surface_create_info.hwnd = state->h_window;
+
+    VK_CHECK(vkCreateWin32SurfaceKHR(context->instance, &surface_create_info, context->allocator, &state->surface));
+
+    context->surface = state->surface;
+    return true;
 }
 
 LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPARAM l_param)
