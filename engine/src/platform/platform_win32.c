@@ -4,6 +4,7 @@
 
 #include "core/log.h"
 #include "core/input/input.h"
+#include "lib/containers/dyn_array.h"
 
 #include <windows.h>
 #include <windowsx.h>
@@ -177,6 +178,11 @@ f64  platform_get_absolute_time(void)
 void platform_sleep(u64 ms)
 {
     Sleep(ms);
+}
+
+void platform_get_required_extension_names(const char*** extension_names)
+{
+    dynarray_push(*extension_names, &"VK_KHR_win32_surface");
 }
 
 LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPARAM l_param)
