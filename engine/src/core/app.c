@@ -4,6 +4,7 @@
 #include "core/memory.h"
 #include "core/event.h"
 #include "core/input/input.h"
+#include "core/clock.h"
 
 typedef struct AppState
 {
@@ -13,6 +14,7 @@ typedef struct AppState
     Platform platform;
     i16 current_width;
     i16 current_height;
+    Clock clock;
     f64 last_time;
 } AppState;
 
@@ -75,6 +77,14 @@ KENZINE_API bool app_init(Game* game)
 
 KENZINE_API bool app_run(void)
 {
+    clock_start(&state.clock);
+    clock_update(&state.clock);
+    state.last_time = state.clock.elapsed_time;
+    
+    f64 running_time = 0.0;
+    u8 frame_count = 0;
+    f64 target_frame_time = 1.0 / 60.0;
+
     log_info(get_memory_report());
 
     if (!initialized)
@@ -92,21 +102,46 @@ KENZINE_API bool app_run(void)
 
         if (!state.suspended)
         {
-            if (!state.game->update(state.game, (f64) 0))
+            clock_update(&state.clock);
+            f64 current_time = state.clock.elapsed_time;
+            f64 delta_time = current_time - state.last_time;
+            f64 frame_start_time = platform_get_absolute_time();
+
+            if (!state.game->update(state.game, delta_time))
             {
                 log_fatal("Failed to update game");
                 state.running = false;
                 break;
             }
 
-            if (!state.game->render(state.game, (f64) 0))
+            if (!state.game->render(state.game, delta_time))
             {
                 log_fatal("Failed to render game");
                 state.running = false;
                 break;
             }
 
-            input_update((f64) 0);
+            f64 frame_end_time = platform_get_absolute_time();
+            f64 frame_elapsed_time = frame_end_time - frame_start_time;
+            running_time += frame_elapsed_time;
+
+            f64 remaining_time = target_frame_time - frame_elapsed_time;
+            if (remaining_time > 0.0) 
+            {
+                u64 remaining_ms = (u64)(remaining_time * 1000.0);
+
+                bool limit_frames = false;
+                if (remaining_ms > 0 && limit_frames)
+                {
+                    platform_sleep(remaining_ms - 1);
+                }
+
+                frame_count++;
+            }
+
+            input_update(delta_time);
+
+            state.last_time = current_time;
         }
     }
 
