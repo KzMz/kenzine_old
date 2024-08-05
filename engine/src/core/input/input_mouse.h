@@ -19,6 +19,9 @@ typedef struct MouseState
     bool buttons[MOUSE_BUTTON_COUNT];
 } MouseState;
 
+static MouseState current_mouse_state;
+static MouseState previous_mouse_state;
+
 bool mouse_button_down(u32 button);
 bool mouse_button_up(u32 button);
 bool mouse_button_was_down(u32 button);
@@ -32,3 +35,5 @@ void mouse_process_mouse_move(i32 x, i32 y);
 void mouse_process_mouse_wheel(i8 z_delta);
 
 void mouse_register(void);
+void* mouse_get_current_state(void);
+void* mouse_get_previous_state(void);

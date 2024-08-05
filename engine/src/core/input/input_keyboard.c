@@ -13,14 +13,20 @@ void keyboard_register(void)
     device.key_was_down = keyboard_key_was_down;
     device.key_was_up = keyboard_key_was_up;
     device.process_key = keyboard_process_key;
-
-    device.current_state = memory_alloc(sizeof(KeyboardState), MEMORY_TAG_INPUTDEVICE);
-    memory_zero(device.current_state, sizeof(KeyboardState));
-
-    device.previous_state = memory_alloc(sizeof(KeyboardState), MEMORY_TAG_INPUTDEVICE);
-    memory_zero(device.previous_state, sizeof(KeyboardState));
+    device.get_current_state = keyboard_get_current_state;
+    device.get_previous_state = keyboard_get_previous_state;
 
     input_register_device(device);
+}
+
+void* keyboard_get_current_state(void)
+{
+    return (void*) &current_keyboard_state;
+}
+
+void* keyboard_get_previous_state(void)
+{
+    return (void*) &previous_keyboard_state;
 }
 
 void keyboard_process_key(u32 key, bool is_down)

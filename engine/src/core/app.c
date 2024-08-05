@@ -6,6 +6,8 @@
 #include "core/input/input.h"
 #include "core/clock.h"
 
+#include "renderer/renderer_frontend.h"
+
 typedef struct AppState
 {
     Game* game;
@@ -63,6 +65,12 @@ KENZINE_API bool app_init(Game* game)
         return false;
     }
 
+    if (!renderer_init(game->app_config.name, &state.platform))
+    {
+        log_fatal("Failed to initialize renderer");
+        return false;
+    }
+
     if (!state.game->init(state.game)) {
         log_fatal("Failed to initialize game");
         return false;
@@ -93,6 +101,8 @@ KENZINE_API bool app_run(void)
         return false;
     }
 
+    RenderPacket packet = {0};
+
     while(state.running)
     {
         if(!platform_handle_messages(&state.platform))
@@ -120,6 +130,9 @@ KENZINE_API bool app_run(void)
                 state.running = false;
                 break;
             }
+
+            packet.delta_time = delta_time;
+            renderer_draw_frame(&packet);
 
             f64 frame_end_time = platform_get_absolute_time();
             f64 frame_elapsed_time = frame_end_time - frame_start_time;
@@ -167,7 +180,10 @@ KENZINE_API void app_shutdown(void)
     event_system_shutdown();
 
     input_shutdown();
+
+    renderer_shutdown();
     platform_shutdown(&state.platform);
+    
     log_shutdown();
 }
 

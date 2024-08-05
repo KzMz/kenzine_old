@@ -140,12 +140,12 @@ void input_update(f64 delta_time)
     {
         if (input_devices[i].id != 0)
         {
-            if (!input_devices[i].current_state || !input_devices[i].previous_state)
+            if (!input_devices[i].get_current_state() || !input_devices[i].get_previous_state())
             {
                 continue;
             } 
 
-            memory_copy(input_devices[i].previous_state, input_devices[i].current_state, sizeof(input_devices[i].current_state));
+            memory_copy(input_devices[i].get_previous_state(), input_devices[i].get_current_state(), sizeof(input_devices[i].get_current_state()));
         }
     }
 }
@@ -161,7 +161,7 @@ void* input_get_current_state(u32 device_id)
     {
         if (input_devices[i].id == device_id)
         {
-            return input_devices[i].current_state;
+            return input_devices[i].get_current_state();
         }
     }
 
@@ -179,7 +179,7 @@ void* input_get_previous_state(u32 device_id)
     {
         if (input_devices[i].id == device_id)
         {
-            return input_devices[i].previous_state;
+            return input_devices[i].get_previous_state();
         }
     }
 

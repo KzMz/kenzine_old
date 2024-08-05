@@ -139,6 +139,9 @@ typedef struct KeyboardState
     bool keys[256];
 } KeyboardState;
 
+static KeyboardState current_keyboard_state;
+static KeyboardState previous_keyboard_state;
+
 bool keyboard_key_down(u32 key);
 bool keyboard_key_up(u32 key);
 bool keyboard_key_was_down(u32 key);
@@ -147,3 +150,5 @@ bool keyboard_key_was_up(u32 key);
 void keyboard_process_key(u32 key, bool is_down);
 
 void keyboard_register(void);
+void* keyboard_get_current_state(void);
+void* keyboard_get_previous_state(void);

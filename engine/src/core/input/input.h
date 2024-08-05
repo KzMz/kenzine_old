@@ -13,6 +13,8 @@ typedef bool (*InputKeyUp)(u32 key_code);
 typedef bool (*InputKeyWasDown)(u32 key_code);
 typedef bool (*InputKeyWasUp)(u32 key_code);
 typedef void (*InputProcessKey)(u32 key_code, bool is_down);
+typedef void* (*InputGetCurrentState)(void);
+typedef void* (*InputGetPreviousState)(void);
 
 typedef struct InputDevice {
     u32 id;
@@ -23,8 +25,8 @@ typedef struct InputDevice {
     InputKeyWasUp key_was_up;
     InputProcessKey process_key;
 
-    void* current_state;
-    void* previous_state;
+    InputGetCurrentState get_current_state;
+    InputGetPreviousState get_previous_state;
 } InputDevice;
 
 #define DEVICE_VALID(device) (device.id != 0 && device.key_down && device.key_up && device.key_was_down && device.key_was_up && device.process_key)

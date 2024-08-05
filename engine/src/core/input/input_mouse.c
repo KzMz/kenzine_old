@@ -13,15 +13,23 @@ void mouse_register(void)
     device.key_was_down = mouse_button_was_down;
     device.key_was_up = mouse_button_was_up;
     device.process_key = mouse_process_button;
-
-    device.current_state = memory_alloc(sizeof(MouseState), MEMORY_TAG_INPUTDEVICE);
-    memory_zero(device.current_state, sizeof(MouseState));
-
-    device.previous_state = memory_alloc(sizeof(MouseState), MEMORY_TAG_INPUTDEVICE);
-    memory_zero(device.previous_state, sizeof(MouseState));
+    device.get_current_state = mouse_get_current_state;
+    device.get_previous_state = mouse_get_previous_state;
 
     input_register_device(device);
 }
+
+void* mouse_get_current_state(void)
+{
+    return (void*) &current_mouse_state;
+}
+
+void* mouse_get_previous_state(void)
+{
+    return (void*) &previous_mouse_state;
+}
+
+void* mouse_get_previous_state(void);
 
 void mouse_process_button(u32 button, bool is_down)
 {

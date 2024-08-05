@@ -10,6 +10,7 @@ static const char* memory_strings[MEMORY_TAG_COUNT] =
     "GAME\t\t",
     "DYNARRAY\t",
     "INPUTDEVICE\t",
+    "RENDERER\t",
     "CUSTOM\t\t",
 };
 
