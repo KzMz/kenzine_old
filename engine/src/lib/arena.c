@@ -2,9 +2,11 @@
 #include "core/log.h"
 #include "core/asserts.h"
 
+u64 get_region_size(u64 size, bool aligned);
+
 Region* region_create(u64 size, bool aligned)
 {
-    const u64 total_size = size + sizeof(Region);
+    u64 total_size = size + sizeof(Region);
     Region* region = platform_alloc(total_size, aligned);
     kz_assert_msg(region != NULL, "Failed to allocate memory for region");
 
@@ -20,6 +22,19 @@ Region* region_create(u64 size, bool aligned)
 void region_free(Region* region)
 {
     platform_free(region, region->aligned);
+}
+
+u64 get_region_size(u64 size, bool aligned)
+{
+    u64 total_size = size;
+    if (true)
+    {
+        if (total_size % REGION_DEFAULT_SIZE != 0)
+        {
+            total_size = (total_size / REGION_DEFAULT_SIZE + 1) * REGION_DEFAULT_SIZE;
+        }
+    }
+    return total_size;
 }
 
 void* arena_alloc(Arena* arena, u64 size, bool aligned)

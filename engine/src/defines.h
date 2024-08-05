@@ -87,3 +87,4 @@ if defined(__ANDROID__)
 #endif
 
 #define mem_zero(buffer) memset((buffer), 0, sizeof(buffer))
+#define kz_clamp(value, min, max) ((value) <= (min) ? (min) : ((value) >= (max) ? (max) : (value)))

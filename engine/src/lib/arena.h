@@ -3,7 +3,7 @@
 #include "defines.h"
 #include "platform/platform.h"
 
-#define REGION_DEFAULT_SIZE (8 * 1024)
+#define REGION_DEFAULT_SIZE (10 * 1024)
 
 typedef struct Region 
 {

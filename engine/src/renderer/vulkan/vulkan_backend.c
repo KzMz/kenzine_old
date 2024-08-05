@@ -6,6 +6,7 @@
 #include "platform/platform.h"
 #include "vulkan_platform.h"
 #include "vulkan_device.h"
+#include "vulkan_swapchain.h"
 
 static VulkanContext context = {0};
 
@@ -15,8 +16,12 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void* user_data);
 
+i32 find_memory_index(u32 type_filter, u32 property_flags);
+
 bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name, struct Platform* platform)
 {
+    context.find_memory_index = find_memory_index;
+
     context.allocator = NULL;
 
     VkApplicationInfo app_info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -122,12 +127,16 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
         return false;
     }
 
+    vulkan_swapchain_create(&context, context.framebuffer_width, context.framebuffer_height, &context.swapchain);
+
     log_info("Vulkan renderer initialized successfully.");
     return true;
 }
 
 void vulkan_renderer_backend_shutdown(RendererBackend* backend)
 {
+    vulkan_swapchain_destroy(&context, &context.swapchain);
+
     vulkan_device_destroy(&context);
 
     if (context.surface) 
@@ -191,4 +200,20 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
             break;    
     }
     return VK_FALSE;   
+}
+
+i32 find_memory_index(u32 type_filter, u32 property_flags)
+{
+    VkPhysicalDeviceMemoryProperties memory_properties;
+    vkGetPhysicalDeviceMemoryProperties(context.device.physical_device, &memory_properties);
+
+    for (u32 i = 0; i < memory_properties.memoryTypeCount; ++i)
+    {
+        if ((type_filter & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & property_flags) == property_flags)
+        {
+            return i;
+        }
+    }
+
+    return -1;
 }

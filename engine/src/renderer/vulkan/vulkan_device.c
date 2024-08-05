@@ -417,3 +417,34 @@ void vulkan_device_query_swapchain_support(
         VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &out_support_info->present_mode_count, out_support_info->present_modes));
     }
 }
+
+bool vulkan_device_detect_depth_format(VulkanDevice* device)
+{
+    VkFormat depth_formats[] = {
+        VK_FORMAT_D32_SFLOAT,
+        VK_FORMAT_D32_SFLOAT_S8_UINT,
+        VK_FORMAT_D24_UNORM_S8_UINT
+    };
+    const u64 format_count = 3;
+
+    u32 flags = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+    for (u32 i = 0; i < format_count; ++i)
+    {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(device->physical_device, depth_formats[i], &props);
+
+        if ((props.linearTilingFeatures & flags) == flags)
+        {
+            device->depth_format = depth_formats[i];
+            return true;
+        }
+        else if ((props.optimalTilingFeatures & flags) == flags)
+        {
+            device->depth_format = depth_formats[i];
+            return true;
+        }
+    }
+
+    return false;
+}
