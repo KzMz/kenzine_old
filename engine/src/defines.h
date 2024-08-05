@@ -65,6 +65,8 @@ if defined(__ANDROID__)
 #else
 #error "Unknown Apple platform."
 #endif
+#elif defined(__EMSCRIPTEN__)
+#define KZ_PLATFORM_EMSCRIPTEN 1
 #else
 #error "Unknown platform."
 #endif

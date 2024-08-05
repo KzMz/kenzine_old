@@ -130,6 +130,13 @@ void vulkan_renderer_backend_shutdown(RendererBackend* backend)
 {
     vulkan_device_destroy(&context);
 
+    if (context.surface) 
+    {
+        log_debug("Destroying Vulkan surface...");
+        vkDestroySurfaceKHR(context.instance, context.surface, context.allocator);
+        context.surface = VK_NULL_HANDLE;
+    }
+
 #if defined(_DEBUG)
     log_debug("Destroying Vulkan debugger...");
     if (context.debug_messenger)
