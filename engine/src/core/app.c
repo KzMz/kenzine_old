@@ -216,3 +216,9 @@ bool app_on_key(u16 code, void* sender, void* linster, EventContext context)
 
     return false;
 }
+
+void app_get_framebuffer_size(u32* width, u32* height)
+{
+    *width = state.current_width;
+    *height = state.current_height;
+}

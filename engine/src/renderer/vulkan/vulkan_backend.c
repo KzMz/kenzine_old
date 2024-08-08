@@ -5,13 +5,22 @@
 #include "lib/string.h"
 #include "lib/containers/dyn_array.h"
 #include "platform/platform.h"
+#include "core/app.h"
+
 #include "vulkan_platform.h"
 #include "vulkan_device.h"
 #include "vulkan_swapchain.h"
 #include "vulkan_renderpass.h"
 #include "vulkan_command_buffer.h"
+#include "vulkan_framebuffer.h"
+#include "vulkan_fence.h"
+
+#define MIN_FRAMEBUFFER_WIDTH 800
+#define MIN_FRAMEBUFFER_HEIGHT 600
 
 static VulkanContext context = {0};
+static u32 raw_framebuffer_width = 0;
+static u32 raw_framebuffer_height = 0;
 
 VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -24,11 +33,23 @@ i32 find_memory_index(u32 type_filter, u32 property_flags);
 void create_command_buffers(RendererBackend* backend);
 void destroy_command_buffers(RendererBackend* backend);
 
+void regenerate_framebuffers(RendererBackend* backend, VulkanSwapchain* swapchain, VulkanRenderPass* render_pass);
+void destroy_framebuffers(RendererBackend* backend, VulkanSwapchain* swapchain);
+
+void create_sync_objects(RendererBackend* backend);
+void destroy_sync_objects(RendererBackend* backend);
+
 bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name, struct Platform* platform)
 {
     context.find_memory_index = find_memory_index;
 
     context.allocator = NULL;
+
+    app_get_framebuffer_size(&raw_framebuffer_width, &raw_framebuffer_height);
+    context.framebuffer_width = raw_framebuffer_width != 0 ? raw_framebuffer_width : MIN_FRAMEBUFFER_WIDTH;
+    context.framebuffer_height = raw_framebuffer_height != 0 ? raw_framebuffer_height : MIN_FRAMEBUFFER_HEIGHT;
+    raw_framebuffer_width = 0;
+    raw_framebuffer_height = 0;
 
     VkApplicationInfo app_info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
     app_info.apiVersion = VK_API_VERSION_1_2;
@@ -142,7 +163,12 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
         1.0f,
         0);
 
+    context.swapchain.framebuffers = dynarray_reserve(VulkanFramebuffer, context.swapchain.image_count);
+    regenerate_framebuffers(backend, &context.swapchain, &context.main_render_pass);
+
     create_command_buffers(backend);
+
+    create_sync_objects(backend);
 
     log_info("Vulkan renderer initialized successfully.");
     return true;
@@ -150,7 +176,13 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
 
 void vulkan_renderer_backend_shutdown(RendererBackend* backend)
 {
+    vkDeviceWaitIdle(context.device.logical_device);
+
+    destroy_sync_objects(backend);
+
     destroy_command_buffers(backend);
+
+    destroy_framebuffers(backend, &context.swapchain);
 
     vulkan_renderpass_destroy(&context, &context.main_render_pass);
 
@@ -270,4 +302,85 @@ void destroy_command_buffers(RendererBackend* backend)
 
     dynarray_destroy(context.graphics_command_buffers);
     context.graphics_command_buffers = NULL;
+}
+
+void regenerate_framebuffers(RendererBackend* backend, VulkanSwapchain* swapchain, VulkanRenderPass* render_pass)
+{
+    for (u32 i = 0; i < swapchain->image_count; ++i)
+    {
+        if (swapchain->framebuffers[i].framebuffer)
+        {
+            vulkan_framebuffer_destroy(&context, &swapchain->framebuffers[i]);
+        }
+
+        u32 attachment_count = 2;
+        VkImageView attachments[2] = {swapchain->image_views[i], swapchain->depth_attachment.view};
+
+        vulkan_framebuffer_create(
+            &context, render_pass,
+            context.framebuffer_width, context.framebuffer_height,
+            attachment_count, attachments,
+            &swapchain->framebuffers[i]);
+    }
+}
+
+void destroy_framebuffers(RendererBackend* backend, VulkanSwapchain* swapchain)
+{
+    for (u32 i = 0; i < swapchain->image_count; ++i)
+    {
+        vulkan_framebuffer_destroy(&context, &swapchain->framebuffers[i]);
+    }
+}
+
+void create_sync_objects(RendererBackend* backend)
+{
+    context.image_available_semaphores = dynarray_reserve(VkSemaphore, context.swapchain.max_frames_in_flight);
+    context.queue_complete_semaphores = dynarray_reserve(VkSemaphore, context.swapchain.max_frames_in_flight);
+    context.in_flight_fences = dynarray_reserve(VulkanFence, context.swapchain.max_frames_in_flight);
+
+    for (u8 i = 0; i < context.swapchain.max_frames_in_flight; ++i)
+    {
+        VkSemaphoreCreateInfo semaphore_create_info = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        VK_CHECK(vkCreateSemaphore(context.device.logical_device, &semaphore_create_info, context.allocator, &context.image_available_semaphores[i]));
+        VK_CHECK(vkCreateSemaphore(context.device.logical_device, &semaphore_create_info, context.allocator, &context.queue_complete_semaphores[i]));
+
+        vulkan_fence_create(&context, true, &context.in_flight_fences[i]);
+    }
+
+    // check if we need VulkanFence* here
+    context.images_in_flight = dynarray_reserve(VulkanFence, context.swapchain.image_count);
+    for (u32 i = 0; i < context.swapchain.image_count; ++i)
+    {
+        context.images_in_flight[i] = NULL;
+    }
+}
+
+void destroy_sync_objects(RendererBackend* backend)
+{
+    for (u8 i = 0; i < context.swapchain.max_frames_in_flight; ++i)
+    {
+        if (context.image_available_semaphores[i] != VK_NULL_HANDLE)
+        {
+            vkDestroySemaphore(context.device.logical_device, context.image_available_semaphores[i], context.allocator);
+        }
+        
+        if (context.queue_complete_semaphores[i] != VK_NULL_HANDLE)
+        {
+            vkDestroySemaphore(context.device.logical_device, context.queue_complete_semaphores[i], context.allocator);
+        }
+
+        vulkan_fence_destroy(&context, &context.in_flight_fences[i]);
+    }
+
+    dynarray_destroy(context.image_available_semaphores);
+    context.image_available_semaphores = NULL;
+
+    dynarray_destroy(context.queue_complete_semaphores);
+    context.queue_complete_semaphores = NULL;
+
+    dynarray_destroy(context.in_flight_fences);
+    context.in_flight_fences = NULL;
+
+    dynarray_destroy(context.images_in_flight);
+    context.images_in_flight = NULL;
 }

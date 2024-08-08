@@ -69,6 +69,14 @@ typedef struct VulkanRenderPass
     VulkanRenderPassState state;
 } VulkanRenderPass;
 
+typedef struct VulkanFramebuffer
+{
+    VkFramebuffer framebuffer;
+    u32 attachment_count;
+    VkImageView* attachments;
+    VulkanRenderPass* render_pass;
+} VulkanFramebuffer;
+
 typedef struct VulkanSwapchain
 {
     VkSurfaceFormatKHR image_format;
@@ -79,6 +87,8 @@ typedef struct VulkanSwapchain
     VkImageView* image_views;
 
     VulkanImage depth_attachment;
+
+    VulkanFramebuffer* framebuffers;
 } VulkanSwapchain;
 
 typedef enum VulkanCommandBufferState
@@ -96,6 +106,12 @@ typedef struct VulkanCommandBuffer
     VkCommandBuffer command_buffer;
     VulkanCommandBufferState state;
 } VulkanCommandBuffer;
+
+typedef struct VulkanFence
+{
+    VkFence fence;
+    bool signaled;
+} VulkanFence;
 
 typedef i32 (*VulkanFindMemoryIndex)(u32 type_filter, u32 property_flags);
 
@@ -117,12 +133,16 @@ typedef struct VulkanContext
     VulkanSwapchain swapchain;
     u32 image_index;
     u32 current_frame;
-
     bool recreating_swapchain;
 
     VulkanFindMemoryIndex find_memory_index;
-
     VulkanRenderPass main_render_pass;
     VulkanCommandBuffer* graphics_command_buffers;
 
+    VkSemaphore* image_available_semaphores;
+    VkSemaphore* queue_complete_semaphores;
+
+    u32 in_flight_fence_count;
+    VulkanFence* in_flight_fences;
+    VulkanFence** images_in_flight;
 } VulkanContext;

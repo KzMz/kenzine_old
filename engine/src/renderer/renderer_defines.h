@@ -7,6 +7,7 @@ typedef enum RendererBackendType
     RENDERER_BACKEND_TYPE_VULKAN = 0,
     RENDERER_BACKEND_TYPE_OPENGL,
     RENDERER_BACKEND_TYPE_DIRECTX,
+    RENDERER_BACKEND_TYPE_WEBGPU
 } RendererBackendType;
 
 struct RendererBackend;
