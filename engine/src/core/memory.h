@@ -22,6 +22,7 @@ KENZINE_API void memory_shutdown(void);
 
 KENZINE_API void* memory_alloc(u64 size, MemoryTag tag);
 KENZINE_API void memory_free(void* block, u64 size, MemoryTag tag);
+KENZINE_API void memory_free_all(MemoryTag tag);
 
 KENZINE_API void memory_zero(void* block, u64 size);
 KENZINE_API void memory_copy(void* dest, const void* source, u64 size);

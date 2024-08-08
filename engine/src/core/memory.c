@@ -42,6 +42,11 @@ KENZINE_API void memory_free(void* block, u64 size, MemoryTag tag)
     (void) tag;
 }
 
+KENZINE_API void memory_free_all(MemoryTag tag)
+{
+    arena_clear(&memory_arenas[tag]);
+}
+
 KENZINE_API void memory_zero(void* block, u64 size)
 {
     platform_zero_memory(block, size);

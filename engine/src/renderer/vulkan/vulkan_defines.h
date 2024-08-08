@@ -45,6 +45,28 @@ typedef struct VulkanImage
     u32 height;
 } VulkanImage;
 
+typedef enum VulkanRenderPassState
+{
+    VULKAN_RENDER_PASS_STATE_READY,
+    VULKAN_RENDER_PASS_STATE_RECORDING,
+    VULKAN_RENDER_PASS_STATE_IN_RENDER_PASS,
+    VULKAN_RENDER_PASS_STATE_RECORDING_FINISHED,
+    VULKAN_RENDER_PASS_STATE_SUBMITTED,
+    VULKAN_RENDER_PASS_STATE_NOT_ALLOCATED
+}  VulkanRenderPassState;
+
+typedef struct VulkanRenderPass
+{
+    VkRenderPass render_pass;
+    f32 x, y, w, h;
+    f32 r, g, b, a;
+
+    f32 depth;
+    u32 stencil;
+
+    VulkanRenderPassState state;
+} VulkanRenderPass;
+
 typedef struct VulkanSwapchain
 {
     VkSurfaceFormatKHR image_format;
@@ -56,6 +78,22 @@ typedef struct VulkanSwapchain
 
     VulkanImage depth_attachment;
 } VulkanSwapchain;
+
+typedef enum VulkanCommandBufferState
+{
+    VULKAN_COMMAND_BUFFER_STATE_READY,
+    VULKAN_COMMAND_BUFFER_STATE_RECORDING,
+    VULKAN_COMMAND_BUFFER_STATE_IN_RENDER_PASS,
+    VULKAN_COMMAND_BUFFER_STATE_RECORDING_FINISHED,
+    VULKAN_COMMAND_BUFFER_STATE_SUBMITTED,
+    VULKAN_COMMAND_BUFFER_STATE_NOT_ALLOCATED
+} VulkanCommandBufferState;
+
+typedef struct VulkanCommandBuffer
+{
+    VkCommandBuffer command_buffer;
+    VulkanCommandBufferState state;
+} VulkanCommandBuffer;
 
 typedef i32 (*VulkanFindMemoryIndex)(u32 type_filter, u32 property_flags);
 
@@ -81,4 +119,6 @@ typedef struct VulkanContext
     bool recreating_swapchain;
 
     VulkanFindMemoryIndex find_memory_index;
+
+    VulkanRenderPass main_render_pass;
 } VulkanContext;
