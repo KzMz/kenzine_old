@@ -7,6 +7,19 @@ void vulkan_renderpass_create(VulkanContext* context, VulkanRenderPass* out_rend
                               f32 depth,
                               u32 stencil)
 {
+    out_render_pass->x = x;
+    out_render_pass->y = y;
+    out_render_pass->w = w;
+    out_render_pass->h = h;
+
+    out_render_pass->r = r;
+    out_render_pass->g = g;
+    out_render_pass->b = b;
+    out_render_pass->a = a;
+
+    out_render_pass->depth = depth;
+    out_render_pass->stencil = stencil;
+
     // Main subpass
     VkSubpassDescription subpass = {0};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -79,7 +92,7 @@ void vulkan_renderpass_create(VulkanContext* context, VulkanRenderPass* out_rend
     render_pass_info.flags = 0;
     render_pass_info.pNext = NULL;
 
-    VK_CHECK(vkCreateRenderPass(context->device.logical_device, &render_pass_info, context->allocator, &out_render_pass->render_pass));
+    VK_ASSERT(vkCreateRenderPass(context->device.logical_device, &render_pass_info, context->allocator, &out_render_pass->render_pass));
 }
 
 void vulkan_renderpass_destroy(VulkanContext* context, VulkanRenderPass* render_pass)

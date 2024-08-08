@@ -54,3 +54,15 @@ bool renderer_draw_frame(RenderPacket* packet)
 
     return true;
 }
+
+void renderer_resize(i32 width, i32 height)
+{
+    if (backend)
+    {
+        backend->resize(backend, width, height);
+    }
+    else 
+    {
+        log_warning("Renderer backend is not initialized. Cannot resize.");
+    }
+}

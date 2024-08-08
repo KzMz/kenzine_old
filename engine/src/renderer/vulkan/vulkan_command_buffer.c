@@ -13,7 +13,7 @@ void vulkan_command_buffer_alloc(VulkanContext* context, VkCommandPool pool, boo
 
     out_command_buffer->state = VULKAN_COMMAND_BUFFER_STATE_NOT_ALLOCATED;
 
-    VK_CHECK(vkAllocateCommandBuffers(context->device.logical_device, &command_buffer_info, &out_command_buffer->command_buffer));
+    VK_ASSERT(vkAllocateCommandBuffers(context->device.logical_device, &command_buffer_info, &out_command_buffer->command_buffer));
 
     out_command_buffer->state = VULKAN_COMMAND_BUFFER_STATE_READY;
 }
@@ -52,7 +52,7 @@ void vulkan_command_buffer_begin(VulkanCommandBuffer* command_buffer, bool is_si
         begin_info.flags |= VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
     }
 
-    VK_CHECK(vkBeginCommandBuffer(command_buffer->command_buffer, &begin_info));
+    VK_ASSERT(vkBeginCommandBuffer(command_buffer->command_buffer, &begin_info));
     command_buffer->state = VULKAN_COMMAND_BUFFER_STATE_RECORDING;
 }
 
@@ -63,7 +63,7 @@ void vulkan_command_buffer_end(VulkanCommandBuffer* command_buffer)
         return;
     }
 
-    VK_CHECK(vkEndCommandBuffer(command_buffer->command_buffer));
+    VK_ASSERT(vkEndCommandBuffer(command_buffer->command_buffer));
     command_buffer->state = VULKAN_COMMAND_BUFFER_STATE_RECORDING_FINISHED;
 }
 
@@ -90,9 +90,9 @@ void vulkan_command_buffer_end_and_submit_single_use(VulkanContext* context, VkC
     VkSubmitInfo submit_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &command_buffer->command_buffer;
-    VK_CHECK(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
+    VK_ASSERT(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
 
-    VK_CHECK(vkQueueWaitIdle(queue));
+    VK_ASSERT(vkQueueWaitIdle(queue));
 
     vulkan_command_buffer_free(context, pool, command_buffer);
 }

@@ -197,7 +197,7 @@ bool platform_create_vulkan_surface(Platform* platform, VulkanContext* context)
     surface_create_info.hinstance = state->h_instance;
     surface_create_info.hwnd = state->h_window;
 
-    VK_CHECK(vkCreateWin32SurfaceKHR(context->instance, &surface_create_info, context->allocator, &state->surface));
+    VK_ASSERT(vkCreateWin32SurfaceKHR(context->instance, &surface_create_info, context->allocator, &state->surface));
 
     context->surface = state->surface;
     return true;
@@ -218,12 +218,15 @@ LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPA
             return 0;
         case WM_SIZE:
         {
-            /*RECT client_rect = {0};
+            RECT client_rect = {0};
             GetClientRect(window, &client_rect);
             i32 width = client_rect.right - client_rect.left;
-            i32 height = client_rect.bottom - client_rect.top;*/
+            i32 height = client_rect.bottom - client_rect.top;
 
-            // TODO: fire event for window resize
+            EventContext event = {0};
+            event.data.u32[0] = width;
+            event.data.u32[1] = height;
+            event_trigger(EVENT_CODE_RESIZED, 0, event);
         } break;
         case WM_KEYDOWN:
         case WM_SYSKEYDOWN:

@@ -24,7 +24,7 @@ void vulkan_framebuffer_create(
     framebuffer_info.height = height;
     framebuffer_info.layers = 1;
 
-    VK_CHECK(vkCreateFramebuffer(context->device.logical_device, &framebuffer_info, context->allocator, &out_framebuffer->framebuffer));
+    VK_ASSERT(vkCreateFramebuffer(context->device.logical_device, &framebuffer_info, context->allocator, &out_framebuffer->framebuffer));
 }
 
 void vulkan_framebuffer_destroy(VulkanContext* context, VulkanFramebuffer* framebuffer)

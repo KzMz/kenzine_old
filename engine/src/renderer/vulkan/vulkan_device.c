@@ -88,7 +88,7 @@ bool vulkan_device_create(VulkanContext* context)
     device_create_info.enabledLayerCount = 0;
     device_create_info.ppEnabledLayerNames = NULL;
 
-    VK_CHECK(vkCreateDevice(context->device.physical_device, &device_create_info, context->allocator, &context->device.logical_device));
+    VK_ASSERT(vkCreateDevice(context->device.physical_device, &device_create_info, context->allocator, &context->device.logical_device));
     log_info("Logical device created.");
 
     vkGetDeviceQueue(context->device.logical_device, context->device.graphics_queue_index, 0, &context->device.graphics_queue);
@@ -101,7 +101,7 @@ bool vulkan_device_create(VulkanContext* context)
     command_pool_info.queueFamilyIndex = context->device.graphics_queue_index;
     command_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-    VK_CHECK(vkCreateCommandPool(context->device.logical_device, &command_pool_info, context->allocator, &context->device.graphics_command_pool));
+    VK_ASSERT(vkCreateCommandPool(context->device.logical_device, &command_pool_info, context->allocator, &context->device.graphics_command_pool));
     log_info("Graphics command pool created.");
 
     return true;
@@ -161,7 +161,7 @@ void vulkan_device_destroy(VulkanContext* context)
 bool select_physical_device(VulkanContext* context)
 {
     u32 device_count = 0;
-    VK_CHECK(vkEnumeratePhysicalDevices(context->instance, &device_count, NULL));
+    VK_ASSERT(vkEnumeratePhysicalDevices(context->instance, &device_count, NULL));
     if (device_count == 0)
     {
         log_fatal("No Vulkan devices found.");
@@ -169,7 +169,7 @@ bool select_physical_device(VulkanContext* context)
     }
 
     VkPhysicalDevice physical_devices[device_count];
-    VK_CHECK(vkEnumeratePhysicalDevices(context->instance, &device_count, physical_devices));
+    VK_ASSERT(vkEnumeratePhysicalDevices(context->instance, &device_count, physical_devices));
 
     // TODO: set those as config
     VulkanPhysicalDeviceRequirements requirements = {0};
@@ -308,7 +308,7 @@ bool physical_device_meets_requirements(
         }
 
         VkBool32 present_support = VK_FALSE;
-        VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support));
+        VK_ASSERT(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support));
         if (present_support)
         {
             out_queue_info->present_family_index = i;
@@ -356,12 +356,12 @@ bool physical_device_meets_requirements(
         {
             u32 extension_count = 0;
             VkExtensionProperties* available_extensions = NULL;
-            VK_CHECK(vkEnumerateDeviceExtensionProperties(physical_device, NULL, &extension_count, NULL));
+            VK_ASSERT(vkEnumerateDeviceExtensionProperties(physical_device, NULL, &extension_count, NULL));
 
             if (extension_count != 0)
             {
                 available_extensions = memory_alloc(sizeof(VkExtensionProperties) * extension_count, MEMORY_TAG_RENDERER);
-                VK_CHECK(vkEnumerateDeviceExtensionProperties(physical_device, NULL, &extension_count, available_extensions));
+                VK_ASSERT(vkEnumerateDeviceExtensionProperties(physical_device, NULL, &extension_count, available_extensions));
 
                 u32 required_extension_count = dynarray_length(requirements->device_extension_names);
                 for (u32 i = 0; i < required_extension_count; ++i)
@@ -406,8 +406,8 @@ void vulkan_device_query_swapchain_support(
     VulkanSwapchainSupportInfo* out_support_info
 )
 {
-    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &out_support_info->capabilities));
-    VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &out_support_info->format_count, NULL));
+    VK_ASSERT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &out_support_info->capabilities));
+    VK_ASSERT(vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &out_support_info->format_count, NULL));
 
     if (out_support_info->format_count != 0)
     {
@@ -416,10 +416,10 @@ void vulkan_device_query_swapchain_support(
             out_support_info->formats = memory_alloc(sizeof(VkSurfaceFormatKHR) * out_support_info->format_count, MEMORY_TAG_RENDERER);
         }
 
-        VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &out_support_info->format_count, out_support_info->formats));
+        VK_ASSERT(vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &out_support_info->format_count, out_support_info->formats));
     }
 
-    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &out_support_info->present_mode_count, NULL));
+    VK_ASSERT(vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &out_support_info->present_mode_count, NULL));
 
     if (out_support_info->present_mode_count != 0)
     {
@@ -428,7 +428,7 @@ void vulkan_device_query_swapchain_support(
             out_support_info->present_modes = memory_alloc(sizeof(VkPresentModeKHR) * out_support_info->present_mode_count, MEMORY_TAG_RENDERER);
         }
 
-        VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &out_support_info->present_mode_count, out_support_info->present_modes));
+        VK_ASSERT(vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &out_support_info->present_mode_count, out_support_info->present_modes));
     }
 }
 

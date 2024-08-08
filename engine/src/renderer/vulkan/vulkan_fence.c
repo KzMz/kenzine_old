@@ -10,7 +10,7 @@ void vulkan_fence_create(VulkanContext* context, bool signaled, VulkanFence* out
         fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     }
 
-    VK_CHECK(vkCreateFence(context->device.logical_device, &fence_info, context->allocator, &out_fence->fence));
+    VK_ASSERT(vkCreateFence(context->device.logical_device, &fence_info, context->allocator, &out_fence->fence));
 }
 
 void vulkan_fence_destroy(VulkanContext* context, VulkanFence* fence)
@@ -75,6 +75,6 @@ void vulkan_fence_reset(VulkanContext* context, VulkanFence* fence)
         return;
     }
 
-    VK_CHECK(vkResetFences(context->device.logical_device, 1, &fence->fence));
+    VK_ASSERT(vkResetFences(context->device.logical_device, 1, &fence->fence));
     fence->signaled = false;
 }

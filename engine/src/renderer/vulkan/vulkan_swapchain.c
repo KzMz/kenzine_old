@@ -166,11 +166,11 @@ void create(VulkanContext* context, u32 width, u32 height, VulkanSwapchain* swap
     create_info.clipped = VK_TRUE;
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
-    VK_CHECK(vkCreateSwapchainKHR(context->device.logical_device, &create_info, context->allocator, &swapchain->swapchain));
+    VK_ASSERT(vkCreateSwapchainKHR(context->device.logical_device, &create_info, context->allocator, &swapchain->swapchain));
 
     context->current_frame = 0;
     swapchain->image_count = 0;
-    VK_CHECK(vkGetSwapchainImagesKHR(context->device.logical_device, swapchain->swapchain, &swapchain->image_count, NULL));
+    VK_ASSERT(vkGetSwapchainImagesKHR(context->device.logical_device, swapchain->swapchain, &swapchain->image_count, NULL));
     if (!swapchain->images) 
     {
         swapchain->images = memory_alloc(sizeof(VkImage) * swapchain->image_count, MEMORY_TAG_RENDERER);
@@ -179,7 +179,7 @@ void create(VulkanContext* context, u32 width, u32 height, VulkanSwapchain* swap
     {
         swapchain->image_views = memory_alloc(sizeof(VkImageView) * swapchain->image_count, MEMORY_TAG_RENDERER);
     }
-    VK_CHECK(vkGetSwapchainImagesKHR(context->device.logical_device, swapchain->swapchain, &swapchain->image_count, swapchain->images));
+    VK_ASSERT(vkGetSwapchainImagesKHR(context->device.logical_device, swapchain->swapchain, &swapchain->image_count, swapchain->images));
 
     for (u32 i = 0; i < swapchain->image_count; ++i)
     {
@@ -193,7 +193,7 @@ void create(VulkanContext* context, u32 width, u32 height, VulkanSwapchain* swap
         view_info.subresourceRange.baseArrayLayer = 0;
         view_info.subresourceRange.layerCount = 1;
 
-        VK_CHECK(vkCreateImageView(context->device.logical_device, &view_info, context->allocator, &swapchain->image_views[i]));
+        VK_ASSERT(vkCreateImageView(context->device.logical_device, &view_info, context->allocator, &swapchain->image_views[i]));
     }
 
     if (!vulkan_device_detect_depth_format(&context->device))
@@ -220,6 +220,8 @@ void create(VulkanContext* context, u32 width, u32 height, VulkanSwapchain* swap
 
 void destroy(VulkanContext* context, VulkanSwapchain* swapchain)
 {
+    vkDeviceWaitIdle(context->device.logical_device);
+
     vulkan_image_destroy(context, &swapchain->depth_attachment);
 
     for (u32 i = 0; i < swapchain->image_count; ++i)

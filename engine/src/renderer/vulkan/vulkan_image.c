@@ -34,7 +34,7 @@ void vulkan_image_create(
     image_info.samples = VK_SAMPLE_COUNT_1_BIT;
     image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VK_CHECK(vkCreateImage(context->device.logical_device, &image_info, context->allocator, &out_image->image));
+    VK_ASSERT(vkCreateImage(context->device.logical_device, &image_info, context->allocator, &out_image->image));
     
     VkMemoryRequirements memory_requirements;
     vkGetImageMemoryRequirements(context->device.logical_device, out_image->image, &memory_requirements);
@@ -49,9 +49,9 @@ void vulkan_image_create(
     alloc_info.allocationSize = memory_requirements.size;
     alloc_info.memoryTypeIndex = memory_type;
 
-    VK_CHECK(vkAllocateMemory(context->device.logical_device, &alloc_info, context->allocator, &out_image->memory));
+    VK_ASSERT(vkAllocateMemory(context->device.logical_device, &alloc_info, context->allocator, &out_image->memory));
 
-    VK_CHECK(vkBindImageMemory(context->device.logical_device, out_image->image, out_image->memory, 0));
+    VK_ASSERT(vkBindImageMemory(context->device.logical_device, out_image->image, out_image->memory, 0));
 
     if (create_view)
     {
@@ -78,7 +78,7 @@ void vulkan_image_view_create(
     view_info.subresourceRange.baseArrayLayer = 0;
     view_info.subresourceRange.layerCount = 1;
 
-    VK_CHECK(vkCreateImageView(context->device.logical_device, &view_info, context->allocator, &image->view));
+    VK_ASSERT(vkCreateImageView(context->device.logical_device, &view_info, context->allocator, &image->view));
 }
 
 void vulkan_image_destroy(VulkanContext* context, VulkanImage* image)

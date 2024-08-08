@@ -24,7 +24,8 @@ static bool initialized = false;
 static AppState state = {0};
 
 bool app_on_event(u16 code, void* sender, void* listener, EventContext context);
-bool app_on_key(u16 code, void* sender, void* linster, EventContext context);
+bool app_on_key(u16 code, void* sender, void* listener, EventContext context);
+bool app_on_resize(u16 code, void* sender, void* listener, EventContext context);
 
 KENZINE_API bool app_init(Game* game)
 {
@@ -52,6 +53,7 @@ KENZINE_API bool app_init(Game* game)
     event_subscribe(EVENT_CODE_APPLICATION_QUIT, 0, app_on_event);
     event_subscribe(EVENT_CODE_KEY_PRESSED, 0, app_on_key);
     event_subscribe(EVENT_CODE_KEY_RELEASED, 0, app_on_key);    
+    event_subscribe(EVENT_CODE_RESIZED, 0, app_on_resize);
 
     if (!platform_init(
         &state.platform, 
@@ -221,4 +223,42 @@ void app_get_framebuffer_size(u32* width, u32* height)
 {
     *width = state.current_width;
     *height = state.current_height;
+}
+
+bool app_on_resize(u16 code, void* sender, void* listener, EventContext context)
+{
+    if (code != EVENT_CODE_RESIZED)
+    {
+        return false;
+    }
+
+    u32 width = context.data.u32[0];
+    u32 height = context.data.u32[1];
+
+    if (width != state.current_width || height != state.current_height)
+    {
+        state.current_width = width;
+        state.current_height = height;
+
+        // Minimized
+        if (width == 0 || height == 0)
+        {
+            log_info("Window minimized");
+            state.suspended = true;
+            return true;
+        }
+        else 
+        {
+            if (state.suspended)
+            {
+                log_info("Window restored");
+                state.suspended = false;
+            }
+            
+            state.game->resize(state.game, width, height);
+            renderer_resize(width, height);
+        }
+    }
+
+    return false;
 }

@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.h>
 #include "core/asserts.h"
 
-#define VK_CHECK(expr) do { kz_assert((expr) == VK_SUCCESS); } while(0)
+#define VK_ASSERT(expr) do { kz_assert((expr) == VK_SUCCESS); } while(0)
 
 typedef struct VulkanSwapchainSupportInfo
 {
@@ -119,6 +119,8 @@ typedef struct VulkanContext
 {
     u32 framebuffer_width;
     u32 framebuffer_height;
+    u32 framebuffer_size_generated;
+    u32 framebuffer_last_size_generated;
 
     VkInstance instance;
     VkAllocationCallbacks* allocator;
