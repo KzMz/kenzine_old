@@ -6,6 +6,7 @@
 #include "core/input/input.h"
 #include "lib/containers/dyn_array.h"
 #include "renderer/vulkan/vulkan_defines.h"
+#include "core/event.h"
 
 #include <windows.h>
 #include <windowsx.h>
@@ -209,8 +210,9 @@ LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPA
         case WM_ERASEBKGND:
             return 1; // Prevent flickering
         case WM_CLOSE:
-            // TODO: fire event for app quit
-            return 0;
+            EventContext event = {0};
+            event_trigger(EVENT_CODE_APPLICATION_QUIT, 0, event);
+            return TRUE;
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;

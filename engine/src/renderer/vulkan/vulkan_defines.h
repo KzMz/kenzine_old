@@ -29,6 +29,8 @@ typedef struct VulkanDevice
     VkQueue present_queue;
     VkQueue transfer_queue;
 
+    VkCommandPool graphics_command_pool;
+
     VkPhysicalDeviceProperties properties;
     VkPhysicalDeviceFeatures features;
     VkPhysicalDeviceMemoryProperties memory;
@@ -121,4 +123,6 @@ typedef struct VulkanContext
     VulkanFindMemoryIndex find_memory_index;
 
     VulkanRenderPass main_render_pass;
+    VulkanCommandBuffer* graphics_command_buffers;
+
 } VulkanContext;
