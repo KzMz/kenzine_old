@@ -88,3 +88,11 @@ if defined(__ANDROID__)
 
 #define mem_zero(buffer) memset((buffer), 0, sizeof(buffer))
 #define kz_clamp(value, min, max) ((value) <= (min) ? (min) : ((value) >= (max) ? (max) : (value)))
+
+#ifdef _MSC_VER
+#define KENZINE_INLINE __forceinline
+#define KENZINE_NO_INLINE __declspec(noinline)
+#else
+#define KENZINE_INLINE static inline
+#define KENZINE_NO_INLINE 
+#endif
