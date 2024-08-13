@@ -4,7 +4,7 @@
 #include "input_mouse.h"
 #include "input_keyboard.h"
 
-void input_init(void);
+void input_init(void* state);
 void input_shutdown(void);
 void input_update(f64 delta_time);
 
@@ -44,3 +44,4 @@ KENZINE_API void input_unregister_device(u32 device_id);
 
 KENZINE_API void* input_get_current_state(u32 device_id);
 KENZINE_API void* input_get_previous_state(u32 device_id);
+KENZINE_API u64 input_get_state_size(void);

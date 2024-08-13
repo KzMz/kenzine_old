@@ -21,6 +21,9 @@ typedef struct AppState
 
     void* logger_state;
     u64 log_state_size;
+
+    void* input_state;
+    u64 input_state_size;
 } AppState;
 
 static AppState* app_state = 0;
@@ -43,13 +46,18 @@ KENZINE_API bool app_init(Game* game)
     app_state->running = true;
     app_state->suspended = false;
 
+    // Log subsystem
     app_state->log_state_size = log_state_size();
     void* logger_state = memory_alloc(app_state->log_state_size, MEMORY_TAG_APP);
     app_state->logger_state = logger_state;
 
-    // Subsystems
     log_init(logger_state);
-    input_init();
+
+    // Input subsystem
+    app_state->input_state_size = input_get_state_size();
+    void* input_state = memory_alloc(app_state->input_state_size, MEMORY_TAG_APP);
+    app_state->input_state = input_state;
+    input_init(input_state);
 
     if (!event_system_init())
     {

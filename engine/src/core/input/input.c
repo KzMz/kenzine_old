@@ -5,8 +5,12 @@
 
 #define MAX_INPUT_DEVICES 4
 
-static InputDevice input_devices[MAX_INPUT_DEVICES] = {0};
-static bool initialized = false;
+typedef struct InputState 
+{
+    InputDevice input_devices[MAX_INPUT_DEVICES];
+} InputState;
+
+static InputState* input_state = 0;
 
 void input_register_device(InputDevice device)
 {
@@ -18,9 +22,9 @@ void input_register_device(InputDevice device)
 
     for (u32 i = 0; i < MAX_INPUT_DEVICES; ++i)
     {
-        if (input_devices[i].id == 0)
+        if (input_state->input_devices[i].id == 0)
         {
-            input_devices[i] = device;
+            input_state->input_devices[i] = device;
             break;
         }
     }
@@ -30,9 +34,9 @@ void input_unregister_device(u32 device_id)
 {
     for (u32 i = 0; i < MAX_INPUT_DEVICES; ++i)
     {
-        if (input_devices[i].id == device_id)
+        if (input_state->input_devices[i].id == device_id)
         {
-            input_devices[i] = (InputDevice) {0};
+            input_state->input_devices[i] = (InputDevice) {0};
             break;
         }
     }
@@ -42,9 +46,9 @@ bool input_key_down(u32 device_id, u32 key_code)
 {
     for (u32 i = 0; i < MAX_INPUT_DEVICES; ++i)
     {
-        if (input_devices[i].id == device_id)
+        if (input_state->input_devices[i].id == device_id)
         {
-            return input_devices[i].key_down(key_code);
+            return input_state->input_devices[i].key_down(key_code);
         }
     }
 
@@ -55,9 +59,9 @@ bool input_key_up(u32 device_id, u32 key_code)
 {
     for (u32 i = 0; i < MAX_INPUT_DEVICES; ++i)
     {
-        if (input_devices[i].id == device_id)
+        if (input_state->input_devices[i].id == device_id)
         {
-            return input_devices[i].key_up(key_code);
+            return input_state->input_devices[i].key_up(key_code);
         }
     }
 
@@ -68,9 +72,9 @@ bool input_key_was_down(u32 device_id, u32 key_code)
 {
     for (u32 i = 0; i < MAX_INPUT_DEVICES; ++i)
     {
-        if (input_devices[i].id == device_id)
+        if (input_state->input_devices[i].id == device_id)
         {
-            return input_devices[i].key_was_down(key_code);
+            return input_state->input_devices[i].key_was_down(key_code);
         }
     }
 
@@ -81,9 +85,9 @@ bool input_key_was_up(u32 device_id, u32 key_code)
 {
     for (u32 i = 0; i < MAX_INPUT_DEVICES; ++i)
     {
-        if (input_devices[i].id == device_id)
+        if (input_state->input_devices[i].id == device_id)
         {
-            return input_devices[i].key_was_up(key_code);
+            return input_state->input_devices[i].key_was_up(key_code);
         }
     }
 
@@ -94,76 +98,70 @@ void input_process_key(u32 device_id, u32 key_code, bool is_down)
 {
     for (u32 i = 0; i < MAX_INPUT_DEVICES; ++i)
     {
-        if (input_devices[i].id == device_id)
+        if (input_state->input_devices[i].id == device_id)
         {
-            input_devices[i].process_key(key_code, is_down);
+            input_state->input_devices[i].process_key(key_code, is_down);
             break;
         }
     }
 }
 
-void input_init(void) 
+void input_init(void* state) 
 {
-    if (initialized)
-    {
-        log_error("Input system already initialized.");
-        return;
-    }
+    input_state = (InputState*) state;
 
-    memory_zero(input_devices, sizeof(input_devices));
+    memory_zero(input_state->input_devices, sizeof(InputDevice) * MAX_INPUT_DEVICES);
 
     keyboard_register();
     mouse_register();
-
-    initialized = true;
 }
 
 void input_shutdown(void)
 {
-    if (!initialized)
+    if (!input_state)
     {
         log_error("Input system not initialized.");
         return;
     }
 
-    initialized = false;
+    input_state = 0;
 }
 
 void input_update(f64 delta_time)
 {
-    if (!initialized)
+    if (!input_state)
     {
         return;
     }
 
     for (u32 i = 0; i < MAX_INPUT_DEVICES; ++i)
     {
-        if (input_devices[i].id != 0)
+        if (input_state->input_devices[i].id != 0)
         {
-            void* current_state = input_devices[i].get_current_state();
-            void* previous_state = input_devices[i].get_previous_state();
+            void* current_state = input_state->input_devices[i].get_current_state();
+            void* previous_state = input_state->input_devices[i].get_previous_state();
             if (!current_state || !previous_state)
             {
                 continue;
             } 
 
-            memory_copy(previous_state, current_state, input_devices[i].state_size);
+            memory_copy(previous_state, current_state, input_state->input_devices[i].state_size);
         }
     }
 }
 
 void* input_get_current_state(u32 device_id)
 {
-    if (!initialized)
+    if (!input_state)
     {
         return 0;
     }
 
     for (u32 i = 0; i < MAX_INPUT_DEVICES; ++i)
     {
-        if (input_devices[i].id == device_id)
+        if (input_state->input_devices[i].id == device_id)
         {
-            return input_devices[i].get_current_state();
+            return input_state->input_devices[i].get_current_state();
         }
     }
 
@@ -172,18 +170,23 @@ void* input_get_current_state(u32 device_id)
 
 void* input_get_previous_state(u32 device_id)
 {
-    if (!initialized)
+    if (!input_state)
     {
         return 0;
     }
 
     for (u32 i = 0; i < MAX_INPUT_DEVICES; ++i)
     {
-        if (input_devices[i].id == device_id)
+        if (input_state->input_devices[i].id == device_id)
         {
-            return input_devices[i].get_previous_state();
+            return input_state->input_devices[i].get_previous_state();
         }
     }
 
     return 0;
+}
+
+u64 input_get_state_size(void)
+{
+    return sizeof(InputState);
 }
