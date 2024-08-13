@@ -12,6 +12,7 @@ static const char* memory_strings[MEMORY_TAG_COUNT] =
     "INPUTDEVICE\t",
     "RENDERER\t",
     "STRING\t\t",
+    "APP\t\t",
     "CUSTOM\t\t",
 };
 

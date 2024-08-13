@@ -2,6 +2,11 @@
 #include "input_keyboard.h"
 #include "core/event.h"
 #include "core/memory.h"
+#include <stdio.h>
+#include <string.h>
+
+static KeyboardState current_keyboard_state;
+static KeyboardState previous_keyboard_state;
 
 void keyboard_register(void)
 {
@@ -15,6 +20,7 @@ void keyboard_register(void)
     device.process_key = keyboard_process_key;
     device.get_current_state = keyboard_get_current_state;
     device.get_previous_state = keyboard_get_previous_state;
+    device.state_size = sizeof(KeyboardState);
 
     input_register_device(device);
 }
@@ -31,6 +37,31 @@ void* keyboard_get_previous_state(void)
 
 void keyboard_process_key(u32 key, bool is_down)
 {
+    if (key == KEY_LALT)
+    {
+        
+    }
+    else if (key == KEY_RALT)
+    {
+        
+    }
+    else if (key == KEY_LSHIFT)
+    {
+        
+    }
+    else if (key == KEY_RSHIFT)
+    {
+        
+    }
+    else if (key == KEY_LCONTROL)
+    {
+        
+    }
+    else if (key == KEY_RCONTROL)
+    {
+        
+    }
+
     KeyboardState* state = (KeyboardState*) input_get_current_state(KEYBOARD_DEVICE_ID);
     if (state->keys[key] == is_down) 
     {

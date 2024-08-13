@@ -22,6 +22,11 @@
         "xlocale": "cpp",
         "memory.h": "c",
         "arena.h": "c",
-        "input_keyboard.h": "c"
+        "input_keyboard.h": "c",
+        "vulkan_device.h": "c",
+        "vulkan_defines.h": "c",
+        "defines.h": "c",
+        "asserts.h": "c",
+        "arena_tests.h": "c"
     }
 }

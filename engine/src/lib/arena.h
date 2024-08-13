@@ -25,7 +25,7 @@ typedef struct Arena
 Region* region_create(u64 size, bool aligned);
 void region_free(Region* region);
 
-void* arena_alloc(Arena* arena, u64 size, bool aligned);
-void arena_clear(Arena* arena);
-u64 arena_get_size(Arena* arena);
-u64 arena_get_max_size(Arena* arena);
+KENZINE_API void* arena_alloc(Arena* arena, u64 size, bool aligned);
+KENZINE_API void arena_clear(Arena* arena);
+KENZINE_API u64 arena_get_size(Arena* arena);
+KENZINE_API u64 arena_get_max_size(Arena* arena);

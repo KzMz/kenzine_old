@@ -4,6 +4,10 @@
 #include <vulkan/vulkan.h>
 #include "core/asserts.h"
 
+#define MAX_INDICES 32
+#define MAX_PHYSICAL_DEVICES 32
+#define MAX_QUEUE_FAMILIES 32
+
 #define VK_ASSERT(expr) do { kz_assert((expr) == VK_SUCCESS); } while(0)
 
 typedef struct VulkanSwapchainSupportInfo

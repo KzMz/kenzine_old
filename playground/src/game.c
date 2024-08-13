@@ -1,5 +1,7 @@
 #include "game.h"
 #include <core/log.h>
+#include <core/input/input.h>
+#include <core/memory.h>
 
 bool game_init(Game* game)
 {
@@ -9,7 +11,11 @@ bool game_init(Game* game)
 
 bool game_update(Game* game, f64 delta_time)
 {
-    //log_info("Game updated");
+    if (input_key_was_down(KEYBOARD_DEVICE_ID, KEY_M) && input_key_up(KEYBOARD_DEVICE_ID, KEY_M))
+    {
+        log_debug(get_memory_report());
+    }
+
     return true;
 }
 

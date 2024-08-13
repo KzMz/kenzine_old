@@ -1,24 +1,39 @@
 #include "log.h"
 #include "asserts.h"
 #include "platform/platform.h"
+#include "core/memory.h"
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+
+typedef struct LoggerState
+{
+    bool initialized;
+} LoggerState;
+
+static LoggerState* logger_state = NULL;
 
 void kz_assert_failure(const char* expression, const char* message, const char* file, i32 line)
 {
     log_fatal("Assertion failed: %s\nMessage: %s\nFile: %s\nLine: %d", expression, message, file, line);
 }
 
-bool log_init(void) 
+u64 log_state_size()
 {
+    return sizeof(LoggerState);
+}
+
+bool log_init(void* state) 
+{
+    logger_state = state;
+    logger_state->initialized = true;
     return true;
 }
 
 void log_shutdown(void)
 {
-
+    logger_state = NULL;
 }
 
 KENZINE_API void log_message(LogLevel level, const char* message, ...)

@@ -140,12 +140,14 @@ void input_update(f64 delta_time)
     {
         if (input_devices[i].id != 0)
         {
-            if (!input_devices[i].get_current_state() || !input_devices[i].get_previous_state())
+            void* current_state = input_devices[i].get_current_state();
+            void* previous_state = input_devices[i].get_previous_state();
+            if (!current_state || !previous_state)
             {
                 continue;
             } 
 
-            memory_copy(input_devices[i].get_previous_state(), input_devices[i].get_current_state(), sizeof(input_devices[i].get_current_state()));
+            memory_copy(previous_state, current_state, input_devices[i].state_size);
         }
     }
 }

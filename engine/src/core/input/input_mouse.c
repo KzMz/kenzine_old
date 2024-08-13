@@ -15,6 +15,7 @@ void mouse_register(void)
     device.process_key = mouse_process_button;
     device.get_current_state = mouse_get_current_state;
     device.get_previous_state = mouse_get_previous_state;
+    device.state_size = sizeof(MouseState); 
 
     input_register_device(device);
 }

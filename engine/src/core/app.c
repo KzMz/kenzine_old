@@ -18,10 +18,12 @@ typedef struct AppState
     i16 current_height;
     Clock clock;
     f64 last_time;
+
+    void* logger_state;
+    u64 log_state_size;
 } AppState;
 
-static bool initialized = false;
-static AppState state = {0};
+static AppState* app_state = 0;
 
 bool app_on_event(u16 code, void* sender, void* listener, EventContext context);
 bool app_on_key(u16 code, void* sender, void* listener, EventContext context);
@@ -29,20 +31,25 @@ bool app_on_resize(u16 code, void* sender, void* listener, EventContext context)
 
 KENZINE_API bool app_init(Game* game)
 {
-    if (initialized)
+    if (game->app_state)
     {
         log_error("App already initialized");
         return false;
     }
 
-    state.game = game;
+    game->app_state = memory_alloc(sizeof(AppState), MEMORY_TAG_APP);
+    app_state = game->app_state;
+    app_state->game = game;
+    app_state->running = true;
+    app_state->suspended = false;
+
+    app_state->log_state_size = log_state_size();
+    void* logger_state = memory_alloc(app_state->log_state_size, MEMORY_TAG_APP);
+    app_state->logger_state = logger_state;
 
     // Subsystems
-    log_init();
+    log_init(logger_state);
     input_init();
-
-    state.running = true;
-    state.suspended = false;
 
     if (!event_system_init())
     {
@@ -56,7 +63,7 @@ KENZINE_API bool app_init(Game* game)
     event_subscribe(EVENT_CODE_RESIZED, 0, app_on_resize);
 
     if (!platform_init(
-        &state.platform, 
+        &app_state->platform, 
         game->app_config.name, 
         game->app_config.width, 
         game->app_config.height, 
@@ -67,29 +74,27 @@ KENZINE_API bool app_init(Game* game)
         return false;
     }
 
-    if (!renderer_init(game->app_config.name, &state.platform))
+    if (!renderer_init(game->app_config.name, &app_state->platform))
     {
         log_fatal("Failed to initialize renderer");
         return false;
     }
 
-    if (!state.game->init(state.game)) {
+    if (!app_state->game->init(app_state->game)) {
         log_fatal("Failed to initialize game");
         return false;
     }
 
-    state.game->resize(state.game, game->app_config.width, game->app_config.height);
-
-    initialized = true;
+    app_state->game->resize(app_state->game, game->app_config.width, game->app_config.height);
 
     return true;
 }
 
 KENZINE_API bool app_run(void)
 {
-    clock_start(&state.clock);
-    clock_update(&state.clock);
-    state.last_time = state.clock.elapsed_time;
+    clock_start(&app_state->clock);
+    clock_update(&app_state->clock);
+    app_state->last_time = app_state->clock.elapsed_time;
     
     f64 running_time = 0.0;
     u8 frame_count = 0;
@@ -97,7 +102,7 @@ KENZINE_API bool app_run(void)
 
     log_info(get_memory_report());
 
-    if (!initialized)
+    if (!app_state)
     {
         log_error("App not initialized");
         return false;
@@ -105,31 +110,31 @@ KENZINE_API bool app_run(void)
 
     RenderPacket packet = {0};
 
-    while(state.running)
+    while(app_state->running)
     {
-        if(!platform_handle_messages(&state.platform))
+        if(!platform_handle_messages(&app_state->platform))
         {
-            state.running = false;
+            app_state->running = false;
         }
 
-        if (!state.suspended)
+        if (!app_state->suspended)
         {
-            clock_update(&state.clock);
-            f64 current_time = state.clock.elapsed_time;
-            f64 delta_time = current_time - state.last_time;
+            clock_update(&app_state->clock);
+            f64 current_time = app_state->clock.elapsed_time;
+            f64 delta_time = current_time - app_state->last_time;
             f64 frame_start_time = platform_get_absolute_time();
 
-            if (!state.game->update(state.game, delta_time))
+            if (!app_state->game->update(app_state->game, delta_time))
             {
                 log_fatal("Failed to update game");
-                state.running = false;
+                app_state->running = false;
                 break;
             }
 
-            if (!state.game->render(state.game, delta_time))
+            if (!app_state->game->render(app_state->game, delta_time))
             {
                 log_fatal("Failed to render game");
-                state.running = false;
+                app_state->running = false;
                 break;
             }
 
@@ -156,7 +161,7 @@ KENZINE_API bool app_run(void)
 
             input_update(delta_time);
 
-            state.last_time = current_time;
+            app_state->last_time = current_time;
         }
     }
 
@@ -166,14 +171,14 @@ KENZINE_API bool app_run(void)
 
 KENZINE_API void app_shutdown(void)
 {
-    if (!initialized)
+    if (!app_state)
     {
         log_error("App not initialized");
         return;
     }
 
-    state.game->shutdown(state.game);
-    state.running = false;
+    app_state->game->shutdown(app_state->game);
+    app_state->running = false;
 
     event_unsubscribe(EVENT_CODE_APPLICATION_QUIT, 0, app_on_event);
     event_unsubscribe(EVENT_CODE_KEY_PRESSED, 0, app_on_key);
@@ -184,7 +189,7 @@ KENZINE_API void app_shutdown(void)
     input_shutdown();
 
     renderer_shutdown();
-    platform_shutdown(&state.platform);
+    platform_shutdown(&app_state->platform);
     
     log_shutdown();
 }
@@ -196,7 +201,7 @@ bool app_on_event(u16 code, void* sender, void* listener, EventContext context)
         case EVENT_CODE_APPLICATION_QUIT: 
         {
             log_info("Application quit event received");
-            state.running = false;
+            app_state->running = false;
             return true;
         }
     }
@@ -221,8 +226,8 @@ bool app_on_key(u16 code, void* sender, void* linster, EventContext context)
 
 void app_get_framebuffer_size(u32* width, u32* height)
 {
-    *width = state.current_width;
-    *height = state.current_height;
+    *width = app_state->current_width;
+    *height = app_state->current_height;
 }
 
 bool app_on_resize(u16 code, void* sender, void* listener, EventContext context)
@@ -235,27 +240,27 @@ bool app_on_resize(u16 code, void* sender, void* listener, EventContext context)
     u32 width = context.data.u32[0];
     u32 height = context.data.u32[1];
 
-    if (width != state.current_width || height != state.current_height)
+    if (width != app_state->current_width || height != app_state->current_height)
     {
-        state.current_width = width;
-        state.current_height = height;
+        app_state->current_width = width;
+        app_state->current_height = height;
 
         // Minimized
         if (width == 0 || height == 0)
         {
             log_info("Window minimized");
-            state.suspended = true;
+            app_state->suspended = true;
             return true;
         }
         else 
         {
-            if (state.suspended)
+            if (app_state->suspended)
             {
                 log_info("Window restored");
-                state.suspended = false;
+                app_state->suspended = false;
             }
             
-            state.game->resize(state.game, width, height);
+            app_state->game->resize(app_state->game, width, height);
             renderer_resize(width, height);
         }
     }

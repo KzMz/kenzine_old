@@ -28,7 +28,8 @@ typedef enum LogLevel
     LOG_LEVEL_TRACE
 } LogLevel;
 
-bool log_init(void);
+u64 log_state_size();
+bool log_init(void* state);
 void log_shutdown(void);
 
 KENZINE_API void log_message(LogLevel level, const char* message, ...);

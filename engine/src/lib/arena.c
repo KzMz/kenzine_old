@@ -81,6 +81,8 @@ void arena_clear(Arena* arena)
     }
     arena->first = NULL;
     arena->last = NULL;
+    arena->num_allocations = 0;
+    arena->num_dynamic_allocations = 0;
 }
 
 u64 arena_get_size(Arena* arena)
@@ -106,7 +108,3 @@ u64 arena_get_max_size(Arena* arena)
     }
     return size;
 }
-
-void* arena_alloc(Arena* arena, u64 size, bool aligned);
-void* arena_alloc_aligned(Arena* arena, u64 size, u64 alignment);
-void arena_clear(Arena* arena);

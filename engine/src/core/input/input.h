@@ -27,6 +27,8 @@ typedef struct InputDevice {
 
     InputGetCurrentState get_current_state;
     InputGetPreviousState get_previous_state;
+    
+    u64 state_size;
 } InputDevice;
 
 #define DEVICE_VALID(device) (device.id != 0 && device.key_down && device.key_up && device.key_was_down && device.key_was_up && device.process_key)

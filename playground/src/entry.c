@@ -1,6 +1,7 @@
 #include <entry.h>
 #include "game.h"
 #include <core/memory.h>
+#include <stddef.h>
 
 bool game_create(Game* game)
 {
@@ -17,5 +18,6 @@ bool game_create(Game* game)
     game->shutdown = game_shutdown;
 
     game->state = memory_alloc(sizeof(GameState), MEMORY_TAG_GAME);
+    game->app_state = NULL;
     return true;
 }

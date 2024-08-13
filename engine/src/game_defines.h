@@ -19,6 +19,8 @@ typedef struct Game
     GameShutdown shutdown;
 
     void* state;
+
+    void* app_state;
 } Game;
 
 #define game_valid(game) (game.init && game.update && game.render && game.resize && game.shutdown)

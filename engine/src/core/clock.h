@@ -8,6 +8,6 @@ typedef struct Clock
     f64 elapsed_time;
 } Clock;
 
-void clock_start(Clock* clock);
-void clock_update(Clock* clock);
-void clock_stop(Clock* clock);
+KENZINE_API void clock_start(Clock* clock);
+KENZINE_API void clock_update(Clock* clock);
+KENZINE_API void clock_stop(Clock* clock);

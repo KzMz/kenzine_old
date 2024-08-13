@@ -120,8 +120,8 @@ typedef enum KeyboardKeys {
     DEFINE_KEY(RSHIFT, 0xA1),
     DEFINE_KEY(LCONTROL, 0xA2),
     DEFINE_KEY(RCONTROL, 0xA3),
-    DEFINE_KEY(LMENU, 0xA4),
-    DEFINE_KEY(RMENU, 0xA5),
+    DEFINE_KEY(LALT, 0xA4),
+    DEFINE_KEY(RALT, 0xA5),
 
     DEFINE_KEY(SEMICOLON, 0xBA),
     DEFINE_KEY(PLUS, 0xBB),
@@ -138,9 +138,6 @@ typedef struct KeyboardState
 {
     bool keys[256];
 } KeyboardState;
-
-static KeyboardState current_keyboard_state;
-static KeyboardState previous_keyboard_state;
 
 bool keyboard_key_down(u32 key);
 bool keyboard_key_up(u32 key);
