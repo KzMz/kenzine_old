@@ -77,8 +77,9 @@ typedef enum SystemEventCode {
 
 typedef bool (*EventCallback)(u16 code, void* sender, void* listener, EventContext context);
 
-bool event_system_init(void);
+bool event_system_init(void* state);
 void event_system_shutdown(void);
+u64 event_system_get_state_size(void);
 
 KENZINE_API bool event_subscribe(u16 code, void* listener, EventCallback callback);
 KENZINE_API bool event_unsubscribe(u16 code, void* listener, EventCallback callback);

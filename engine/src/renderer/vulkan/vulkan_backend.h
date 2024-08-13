@@ -2,7 +2,7 @@
 
 #include "renderer/renderer_backend.h"
 
-bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name, struct Platform* platform);
+bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name);
 void vulkan_renderer_backend_shutdown(RendererBackend* backend);
 
 bool vulkan_renderer_backend_begin_frame(RendererBackend* backend, f64 delta_time);

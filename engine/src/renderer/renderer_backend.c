@@ -2,10 +2,8 @@
 
 #include "vulkan/vulkan_backend.h"
 
-bool renderer_backend_create(RendererBackendType type, struct Platform* platform, RendererBackend* out_backend)
+bool renderer_backend_create(RendererBackendType type, RendererBackend* out_backend)
 {
-    out_backend->platform = platform;
-
     if (type == RENDERER_BACKEND_TYPE_VULKAN)
     {
         out_backend->init = vulkan_renderer_backend_init;
@@ -27,6 +25,4 @@ void renderer_backend_destroy(RendererBackend* backend)
     backend->resize = 0;
     backend->begin_frame = 0;
     backend->end_frame = 0;
-    
-    backend->platform = 0;
 }

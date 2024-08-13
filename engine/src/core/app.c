@@ -13,7 +13,6 @@ typedef struct AppState
     Game* game;
     bool running;
     bool suspended;
-    Platform platform;
     i16 current_width;
     i16 current_height;
     Clock clock;
@@ -24,6 +23,15 @@ typedef struct AppState
 
     void* input_state;
     u64 input_state_size;
+
+    void* event_state;
+    u64 event_state_size;
+
+    void* platform_state;
+    u64 platform_state_size;
+
+    void* renderer_state;
+    u64 renderer_state_size;
 } AppState;
 
 static AppState* app_state = 0;
@@ -59,7 +67,11 @@ KENZINE_API bool app_init(Game* game)
     app_state->input_state = input_state;
     input_init(input_state);
 
-    if (!event_system_init())
+    // Event subsystem
+    app_state->event_state_size = event_system_get_state_size();
+    void* event_state = memory_alloc(app_state->event_state_size, MEMORY_TAG_APP);
+    app_state->event_state = event_state;
+    if (!event_system_init(event_state))
     {
         log_error("Failed to initialize event system");
         return false;
@@ -70,8 +82,12 @@ KENZINE_API bool app_init(Game* game)
     event_subscribe(EVENT_CODE_KEY_RELEASED, 0, app_on_key);    
     event_subscribe(EVENT_CODE_RESIZED, 0, app_on_resize);
 
+    // Platform subsystem
+    app_state->platform_state_size = platform_get_state_size();
+    void* platform_state = memory_alloc(app_state->platform_state_size, MEMORY_TAG_APP);
+    app_state->platform_state = platform_state;
     if (!platform_init(
-        &app_state->platform, 
+        platform_state, 
         game->app_config.name, 
         game->app_config.width, 
         game->app_config.height, 
@@ -82,7 +98,11 @@ KENZINE_API bool app_init(Game* game)
         return false;
     }
 
-    if (!renderer_init(game->app_config.name, &app_state->platform))
+    // Renderer subsystem
+    app_state->renderer_state_size = renderer_get_state_size();
+    void* renderer_state = memory_alloc(app_state->renderer_state_size, MEMORY_TAG_APP);
+    app_state->renderer_state = renderer_state;
+    if (!renderer_init(renderer_state, game->app_config.name))
     {
         log_fatal("Failed to initialize renderer");
         return false;
@@ -120,7 +140,7 @@ KENZINE_API bool app_run(void)
 
     while(app_state->running)
     {
-        if(!platform_handle_messages(&app_state->platform))
+        if(!platform_handle_messages())
         {
             app_state->running = false;
         }
@@ -197,7 +217,7 @@ KENZINE_API void app_shutdown(void)
     input_shutdown();
 
     renderer_shutdown();
-    platform_shutdown(&app_state->platform);
+    platform_shutdown();
     
     log_shutdown();
 }

@@ -13,7 +13,7 @@ typedef enum RendererBackendType
 struct RendererBackend;
 struct Platform;
 
-typedef bool (*RendererBackendInit)(struct RendererBackend* backend, const char* app_name, struct Platform* platform);
+typedef bool (*RendererBackendInit)(struct RendererBackend* backend, const char* app_name);
 typedef void (*RendererBackendShutdown)(struct RendererBackend* backend);
 typedef void (*RendererBackendResize)(struct RendererBackend* backend, i32 width, i32 height);
 typedef bool (*RendererBackendBeginFrame)(struct RendererBackend* backend, f64 delta_time);
@@ -21,7 +21,6 @@ typedef bool (*RendererBackendEndFrame)(struct RendererBackend* backend, f64 del
 
 typedef struct RendererBackend 
 {
-    struct Platform* platform;
     u64 frame_number;
 
     RendererBackendInit init;

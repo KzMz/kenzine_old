@@ -20,33 +20,35 @@ typedef struct EventSystem
     EventCodeEntry event_entries[MAX_MESSAGE_CODES];
 } EventSystem;
 
-static bool initialized = false;
-static EventSystem event_system = {0};
+static EventSystem* event_system = 0;
 
-bool event_system_init(void)
+bool event_system_init(void* state)
 {
-    if (initialized)
+    if (event_system)
     {
         return false;
     }
 
-    initialized = false;
-    memory_zero(&event_system, sizeof(EventSystem));
-
-    initialized = true;
+    event_system = state;
+    memory_zero(event_system, sizeof(EventSystem));
     return true;
+}
+
+u64 event_system_get_state_size(void)
+{
+    return sizeof(EventSystem);
 }
 
 void event_system_shutdown(void)
 {
-    if (!initialized)
+    if (!event_system)
     {
         return;
     }
 
     for (u16 i = 0; i < MAX_MESSAGE_CODES; ++i)
     {
-        EventCodeEntry* entry = &event_system.event_entries[i];
+        EventCodeEntry* entry = &event_system->event_entries[i];
         if (entry->subscriptions)
         {
             dynarray_destroy(entry->subscriptions);
@@ -55,17 +57,17 @@ void event_system_shutdown(void)
     }
 
     memory_zero(&event_system, sizeof(EventSystem));
-    initialized = false;
+    event_system = (void*) 0;
 }
 
 bool event_subscribe(u16 code, void* listener, EventCallback callback)
 {
-    if (!initialized)
+    if (!event_system)
     {
         return false;
     }
 
-    EventCodeEntry* entry = &event_system.event_entries[code];
+    EventCodeEntry* entry = &event_system->event_entries[code];
     if (!entry->subscriptions)
     {
         entry->subscriptions = dynarray_create(EventSubscription);
@@ -92,12 +94,12 @@ bool event_subscribe(u16 code, void* listener, EventCallback callback)
 
 bool event_unsubscribe(u16 code, void* listener, EventCallback callback)
 {
-    if (!initialized)
+    if (!event_system)
     {
         return false;
     }
 
-    EventCodeEntry* entry = &event_system.event_entries[code];
+    EventCodeEntry* entry = &event_system->event_entries[code];
     if (!entry->subscriptions)
     {
         return false;
@@ -120,12 +122,12 @@ bool event_unsubscribe(u16 code, void* listener, EventCallback callback)
 
 bool event_trigger(u16 code, void* sender, EventContext context)
 {
-    if (!initialized)
+    if (!event_system)
     {
         return false;
     }
 
-    EventCodeEntry* entry = &event_system.event_entries[code];
+    EventCodeEntry* entry = &event_system->event_entries[code];
     if (!entry->subscriptions)
     {
         return false;

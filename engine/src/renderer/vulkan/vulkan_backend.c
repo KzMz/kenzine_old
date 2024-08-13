@@ -42,7 +42,7 @@ void destroy_sync_objects(RendererBackend* backend);
 
 bool recreate_swapchain(RendererBackend* backend);
 
-bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name, struct Platform* platform)
+bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name)
 {
     context.find_memory_index = find_memory_index;
 
@@ -144,7 +144,7 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
 #endif
 
     log_debug("Creating Vulkan surface...");
-    if (!platform_create_vulkan_surface(platform, &context))
+    if (!platform_create_vulkan_surface(&context))
     {
         log_fatal("Failed to create Vulkan surface.");
         return false;

@@ -19,24 +19,29 @@ typedef struct PlatformState
     VkSurfaceKHR surface;
 } PlatformState;
 
+static PlatformState* platform_state = 0;
+
 // Clock
 static f64 clock_frequency = 0.0;
 static LARGE_INTEGER start_time = {0};
 
 LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPARAM l_param);
 
-bool platform_init(Platform* platform, const char* app_name, i32 width, i32 height, i32 x, i32 y)
+u64 platform_get_state_size(void)
 {
-    platform->state = malloc(sizeof(PlatformState));
-    PlatformState* state = (PlatformState*) platform->state;
+    return sizeof(PlatformState);
+}
 
-    state->h_instance = GetModuleHandleA(NULL);
+bool platform_init(void* state, const char* app_name, i32 width, i32 height, i32 x, i32 y)
+{
+    platform_state = (PlatformState*) state;
+    platform_state->h_instance = GetModuleHandleA(NULL);
 
-    HICON h_icon = LoadIcon(state->h_instance, IDI_APPLICATION);
+    HICON h_icon = LoadIcon(platform_state->h_instance, IDI_APPLICATION);
     WNDCLASSA wc = {0};
     wc.style = CS_DBLCLKS;
     wc.lpfnWndProc = win32_process_message;
-    wc.hInstance = state->h_instance;
+    wc.hInstance = platform_state->h_instance;
     wc.hIcon = h_icon;
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
@@ -73,7 +78,7 @@ bool platform_init(Platform* platform, const char* app_name, i32 width, i32 heig
     HWND handle = CreateWindowExA(
         window_ex_style, wc.lpszClassName, app_name, 
         window_style, window_x, window_y, window_width, window_height, 
-        NULL, NULL, state->h_instance, NULL);
+        NULL, NULL, platform_state->h_instance, NULL);
 
     if (handle == 0)
     {
@@ -82,11 +87,11 @@ bool platform_init(Platform* platform, const char* app_name, i32 width, i32 heig
         return false;
     }
 
-    state->h_window = handle;
+    platform_state->h_window = handle;
 
     bool should_activate = true;
     i32 show_command = should_activate ? SW_SHOW : SW_SHOWNOACTIVATE;
-    ShowWindow(state->h_window, show_command);
+    ShowWindow(platform_state->h_window, show_command);
 
     LARGE_INTEGER frequency = {0};
     QueryPerformanceFrequency(&frequency);
@@ -96,19 +101,29 @@ bool platform_init(Platform* platform, const char* app_name, i32 width, i32 heig
     return true;
 }
 
-void platform_shutdown(Platform* platform)
+void platform_shutdown()
 {
-    PlatformState* state = (PlatformState*) platform->state;
-
-    if (state->h_window != NULL)
+    if (platform_state == NULL)
     {
-        DestroyWindow(state->h_window);
-        state->h_window = NULL;
+        return;
     }
+
+    if (platform_state->h_window != NULL)
+    {
+        DestroyWindow(platform_state->h_window);
+        platform_state->h_window = NULL;
+    }
+
+    platform_state = NULL;
 }
 
-bool platform_handle_messages(Platform* platform)
+bool platform_handle_messages()
 {
+    if (platform_state == NULL)
+    {
+        return false;
+    }
+
     MSG message = {0};
     while (PeekMessageA(&message, NULL, 0, 0, PM_REMOVE))
     {
@@ -189,17 +204,20 @@ void platform_get_required_extension_names(const char*** extension_names)
     dynarray_push(*extension_names, &"VK_KHR_win32_surface");
 }
 
-bool platform_create_vulkan_surface(Platform* platform, VulkanContext* context)
+bool platform_create_vulkan_surface(VulkanContext* context)
 {
-    PlatformState* state = (PlatformState*) platform->state;
+    if (platform_state == NULL)
+    {
+        return false;
+    }
 
     VkWin32SurfaceCreateInfoKHR surface_create_info = {VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
-    surface_create_info.hinstance = state->h_instance;
-    surface_create_info.hwnd = state->h_window;
+    surface_create_info.hinstance = platform_state->h_instance;
+    surface_create_info.hwnd = platform_state->h_window;
 
-    VK_ASSERT(vkCreateWin32SurfaceKHR(context->instance, &surface_create_info, context->allocator, &state->surface));
+    VK_ASSERT(vkCreateWin32SurfaceKHR(context->instance, &surface_create_info, context->allocator, &platform_state->surface));
 
-    context->surface = state->surface;
+    context->surface = platform_state->surface;
     return true;
 }
 

@@ -4,9 +4,11 @@
 
 struct Platform;
 
-bool renderer_init(const char* app_name, struct Platform* platform);
+bool renderer_init(void* state, const char* app_name);
 void renderer_shutdown(void);
 
 void renderer_resize(i32 width, i32 height);
 
 bool renderer_draw_frame(RenderPacket* packet);
+
+u64 renderer_get_state_size(void);
