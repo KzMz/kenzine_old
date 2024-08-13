@@ -32,6 +32,14 @@ u64 platform_get_state_size(void)
     return sizeof(PlatformState);
 }
 
+void clock_setup(void)
+{
+    LARGE_INTEGER frequency = {0};
+    QueryPerformanceFrequency(&frequency);
+    clock_frequency = 1.0 / (f64) frequency.QuadPart;
+    QueryPerformanceCounter(&start_time);
+}
+
 bool platform_init(void* state, const char* app_name, i32 width, i32 height, i32 x, i32 y)
 {
     platform_state = (PlatformState*) state;
@@ -93,11 +101,7 @@ bool platform_init(void* state, const char* app_name, i32 width, i32 height, i32
     i32 show_command = should_activate ? SW_SHOW : SW_SHOWNOACTIVATE;
     ShowWindow(platform_state->h_window, show_command);
 
-    LARGE_INTEGER frequency = {0};
-    QueryPerformanceFrequency(&frequency);
-    clock_frequency = 1.0 / (f64) frequency.QuadPart;
-    QueryPerformanceCounter(&start_time);
-    
+    clock_setup();    
     return true;
 }
 
@@ -189,6 +193,11 @@ void platform_console_write_error(const char* message, LogLevel level)
 
 f64  platform_get_absolute_time(void)
 {
+    if (!clock_frequency)
+    {
+        clock_setup();
+    }
+
     LARGE_INTEGER now = {0};
     QueryPerformanceCounter(&now);
     return (f64) (now.QuadPart) * clock_frequency;
@@ -254,42 +263,26 @@ LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPA
             bool pressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
             KeyboardKeys key = (u16) w_param;
 
+            bool extended = (HIWORD(l_param) & KF_EXTENDED) == KF_EXTENDED;
+
             if (w_param == VK_MENU)
             {
-                if (GetKeyState(VK_RMENU) & 0x8000)
-                {
-                    key = KEY_RALT;
-                }
-                else if (GetKeyState(VK_LMENU) & 0x8000)
-                {
-                    key = KEY_LALT;
-                }
+                key = extended ? KEY_RALT : KEY_LALT;
             } 
             else if (w_param == VK_SHIFT)
             {
-                if (GetKeyState(VK_RSHIFT) & 0x8000)
-                {
-                    key = KEY_RSHIFT;
-                }
-                else if (GetKeyState(VK_LSHIFT) & 0x8000)
-                {
-                    key = KEY_LSHIFT;
-                }
+                u32 left_shift = MapVirtualKey(VK_LSHIFT, MAPVK_VK_TO_VSC);
+                u32 scancode = (u32) ((l_param & (0xFF << 16)) >> 16);
+                key = scancode == left_shift ? KEY_LSHIFT : KEY_RSHIFT;
             } 
             else if (w_param == VK_CONTROL)
             {
-                if (GetKeyState(VK_RCONTROL) & 0x8000)
-                {
-                    key = KEY_RCONTROL;
-                }
-                else if (GetKeyState(VK_LCONTROL) & 0x8000)
-                {
-                    key = KEY_LCONTROL;
-                }
-            }
+                key = extended ? KEY_RCONTROL : KEY_LCONTROL;
+            } 
 
             input_process_key(KEYBOARD_DEVICE_ID, key, pressed);
-        } break;
+            return 0;
+        }
         case WM_MOUSEMOVE: 
         {
             i32 x = GET_X_LPARAM(l_param);
