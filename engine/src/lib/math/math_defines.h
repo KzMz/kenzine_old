@@ -71,3 +71,8 @@ typedef union Mat4_u
 {
     f32 elements[4 * 4];
 } Mat4;
+
+typedef struct Vertex3d 
+{
+    Vec3 position;
+} Vertex3d;

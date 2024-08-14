@@ -27,6 +27,7 @@
         "vulkan_defines.h": "c",
         "defines.h": "c",
         "asserts.h": "c",
-        "arena_tests.h": "c"
+        "arena_tests.h": "c",
+        "filesystem.h": "c"
     }
 }

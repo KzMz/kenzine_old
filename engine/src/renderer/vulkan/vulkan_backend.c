@@ -6,6 +6,7 @@
 #include "lib/containers/dyn_array.h"
 #include "platform/platform.h"
 #include "core/app.h"
+#include "lib/math/math_defines.h"
 
 #include "vulkan_platform.h"
 #include "vulkan_device.h"
@@ -15,6 +16,9 @@
 #include "vulkan_framebuffer.h"
 #include "vulkan_fence.h"
 #include "vulkan_utils.h"
+#include "vulkan_buffer.h"
+
+#include "shaders/vulkan_obj_shader.h"
 
 #define MIN_FRAMEBUFFER_WIDTH 800
 #define MIN_FRAMEBUFFER_HEIGHT 600
@@ -30,6 +34,9 @@ VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
     void* user_data);
 
 i32 find_memory_index(u32 type_filter, u32 property_flags);
+
+bool create_buffers(VulkanContext* context);
+void destroy_buffers(VulkanContext* context);
 
 void create_command_buffers(RendererBackend* backend);
 void destroy_command_buffers(RendererBackend* backend);
@@ -173,6 +180,14 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
 
     create_sync_objects(backend);
 
+    if (!vulkan_obj_shader_create(&context, &context.obj_shader))
+    {
+        log_fatal("Failed to create object shader.");
+        return false;
+    }
+
+    create_buffers(&context);
+
     log_info("Vulkan renderer initialized successfully.");
     return true;
 }
@@ -180,6 +195,10 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
 void vulkan_renderer_backend_shutdown(RendererBackend* backend)
 {
     vkDeviceWaitIdle(context.device.logical_device);
+
+    destroy_buffers(&context);
+
+    vulkan_obj_shader_destroy(&context, &context.obj_shader);
 
     destroy_sync_objects(backend);
 
@@ -554,4 +573,49 @@ bool recreate_swapchain(RendererBackend* backend)
     context.recreating_swapchain = false;
 
     return true;
+}
+
+bool create_buffers(VulkanContext* context)
+{
+    VkMemoryPropertyFlagBits flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+    const u64 vertex_buffer_size = sizeof(Vertex3d) * 1024 * 1024;
+    if (!vulkan_buffer_create(
+        context,
+        vertex_buffer_size,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        flags,
+        true,
+        &context->obj_vertex_buffer
+    ))
+    {
+        log_error("Failed to create vertex buffer.");
+        return false;
+    }
+
+    context->geometry_vertex_offset = 0;
+
+    const u64 index_buffer_size = sizeof(u32) * 1024 * 1024;
+    if (!vulkan_buffer_create(
+        context,
+        index_buffer_size,
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        flags,
+        true,
+        &context->obj_index_buffer
+    ))
+    {
+        log_error("Failed to create index buffer.");
+        return false;
+    }
+
+    context->geometry_index_offset = 0;
+
+    return true;
+}
+
+void destroy_buffers(VulkanContext* context)
+{
+    vulkan_buffer_destroy(context, &context->obj_vertex_buffer);
+    vulkan_buffer_destroy(context, &context->obj_index_buffer);
 }

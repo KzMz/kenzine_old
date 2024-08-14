@@ -7,8 +7,20 @@
 #define MAX_INDICES 32
 #define MAX_PHYSICAL_DEVICES 32
 #define MAX_QUEUE_FAMILIES 32
+#define OBJECT_SHADER_STAGE_COUNT 2
 
 #define VK_ASSERT(expr) do { kz_assert((expr) == VK_SUCCESS); } while(0)
+
+typedef struct VulkanBuffer 
+{
+    u64 size;
+    VkBuffer buffer;
+    VkBufferUsageFlagBits usage;
+    VkDeviceMemory memory;
+    bool locked;
+    i32 memory_index;
+    u32 memory_property_flags;
+} VulkanBuffer;
 
 typedef struct VulkanSwapchainSupportInfo
 {
@@ -117,6 +129,26 @@ typedef struct VulkanFence
     bool signaled;
 } VulkanFence;
 
+typedef struct VulkanShaderStage
+{
+    VkShaderModuleCreateInfo create_info;
+    VkShaderModule module;
+    VkPipelineShaderStageCreateInfo stage_info;
+} VulkanShaderStage;
+
+typedef struct VulkanPipeline
+{
+    VkPipeline pipeline;
+    VkPipelineLayout layout;
+} VulkanPipeline;
+
+typedef struct VulkanObjShader
+{
+    VulkanShaderStage stages[OBJECT_SHADER_STAGE_COUNT];
+    VulkanPipeline pipeline;
+    
+} VulkanObjShader;
+
 typedef i32 (*VulkanFindMemoryIndex)(u32 type_filter, u32 property_flags);
 
 typedef struct VulkanContext 
@@ -145,10 +177,18 @@ typedef struct VulkanContext
     VulkanRenderPass main_render_pass;
     VulkanCommandBuffer* graphics_command_buffers;
 
+    VulkanBuffer obj_vertex_buffer;
+    VulkanBuffer obj_index_buffer;
+
     VkSemaphore* image_available_semaphores;
     VkSemaphore* queue_complete_semaphores;
 
     u32 in_flight_fence_count;
     VulkanFence* in_flight_fences;
     VulkanFence** images_in_flight;
+
+    VulkanObjShader obj_shader;
+
+    u64 geometry_vertex_offset;
+    u64 geometry_index_offset;
 } VulkanContext;

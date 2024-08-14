@@ -1,6 +1,7 @@
 #include "event.h"
 #include "memory.h"
 #include "lib/containers/dyn_array.h"
+#include <stddef.h>
 
 #define MAX_MESSAGE_CODES 16 * 1024
 
@@ -52,12 +53,12 @@ void event_system_shutdown(void)
         if (entry->subscriptions)
         {
             dynarray_destroy(entry->subscriptions);
-            entry->subscriptions = (void*) 0;
+            entry->subscriptions = NULL;
         }
     }
 
-    memory_zero(&event_system, sizeof(EventSystem));
-    event_system = (void*) 0;
+    memory_zero(event_system, sizeof(EventSystem));
+    event_system = NULL;
 }
 
 bool event_subscribe(u16 code, void* listener, EventCallback callback)
