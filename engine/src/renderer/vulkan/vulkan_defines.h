@@ -3,6 +3,7 @@
 #include "defines.h"
 #include <vulkan/vulkan.h>
 #include "core/asserts.h"
+#include "renderer/renderer_defines.h"
 
 #define MAX_INDICES 32
 #define MAX_PHYSICAL_DEVICES 32
@@ -146,7 +147,15 @@ typedef struct VulkanObjShader
 {
     VulkanShaderStage stages[OBJECT_SHADER_STAGE_COUNT];
     VulkanPipeline pipeline;
-    
+
+    VkDescriptorPool descriptor_pool;
+    VkDescriptorSetLayout descriptor_set_layout;
+
+    VkDescriptorSet descriptor_set[3];
+    bool descriptor_updated[3];
+
+    GlobalUniform global_uniform;
+    VulkanBuffer global_uniform_buffer;
 } VulkanObjShader;
 
 typedef i32 (*VulkanFindMemoryIndex)(u32 type_filter, u32 property_flags);

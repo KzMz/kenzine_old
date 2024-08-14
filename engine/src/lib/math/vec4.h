@@ -101,6 +101,8 @@ KENZINE_INLINE Vec4 vec4_normalize(Vec4* v)
     v->y /= length;
     v->z /= length;
     v->w /= length;
+
+    return *v;
 }
 
 KENZINE_INLINE Vec4 vec4_normalized(Vec4 v)

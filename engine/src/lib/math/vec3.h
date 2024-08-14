@@ -129,6 +129,8 @@ KENZINE_INLINE Vec3 vec3_normalize(Vec3* v)
     v->x /= length;
     v->y /= length;
     v->z /= length;
+
+    return *v;
 }
 
 KENZINE_INLINE Vec3 vec3_normalized(Vec3 v)

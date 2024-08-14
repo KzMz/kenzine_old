@@ -1,6 +1,7 @@
 #pragma once
 
 #include "defines.h"
+#include "lib/math/math_defines.h"
 
 typedef enum RendererBackendType
 {
@@ -10,6 +11,14 @@ typedef enum RendererBackendType
     RENDERER_BACKEND_TYPE_WEBGPU
 } RendererBackendType;
 
+typedef struct GlobalUniform
+{
+    Mat4 projection;
+    Mat4 view;
+    Mat4 reserved0;
+    Mat4 reserved1;
+} GlobalUniform;
+
 struct RendererBackend;
 struct Platform;
 
@@ -18,6 +27,7 @@ typedef void (*RendererBackendShutdown)(struct RendererBackend* backend);
 typedef void (*RendererBackendResize)(struct RendererBackend* backend, i32 width, i32 height);
 typedef bool (*RendererBackendBeginFrame)(struct RendererBackend* backend, f64 delta_time);
 typedef bool (*RendererBackendEndFrame)(struct RendererBackend* backend, f64 delta_time);
+typedef void (*RendererBackendUpdateGlobalUniform)(Mat4 proj, Mat4 view, Vec3 view_position, Vec4 ambient_color, i32 mode);
 
 typedef struct RendererBackend 
 {
@@ -30,6 +40,8 @@ typedef struct RendererBackend
 
     RendererBackendBeginFrame begin_frame;
     RendererBackendEndFrame end_frame;
+
+    RendererBackendUpdateGlobalUniform update_global_uniform;
 } RendererBackend;
 
 typedef struct RenderPacket 

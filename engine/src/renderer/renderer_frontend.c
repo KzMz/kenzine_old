@@ -2,6 +2,10 @@
 #include "renderer_backend.h"
 #include "core/log.h"
 #include "core/memory.h"
+#include "lib/math/math_defines.h"
+#include "lib/math/vec3.h"
+#include "lib/math/vec4.h"
+#include "lib/math/mat4.h"
 
 typedef struct RendererState
 {
@@ -56,6 +60,11 @@ bool renderer_draw_frame(RenderPacket* packet)
 {
     if (renderer_begin_frame(packet->delta_time))
     {
+        Mat4 proj = mat4_proj_perspective(deg_to_rad(45.0f), 1280 / 720.0f, 0.1f, 1000.0f);
+        Mat4 view = mat4_translation((Vec3) { 0, 0, -30 });
+
+        renderer_state->backend->update_global_uniform(proj, view, vec3_zero(), vec4_one(), 0);
+
         bool result = renderer_end_frame(packet->delta_time);
         if (!result) 
         {

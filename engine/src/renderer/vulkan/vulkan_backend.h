@@ -8,4 +8,6 @@ void vulkan_renderer_backend_shutdown(RendererBackend* backend);
 bool vulkan_renderer_backend_begin_frame(RendererBackend* backend, f64 delta_time);
 bool vulkan_renderer_backend_end_frame(RendererBackend* backend, f64 delta_time);
 
+void vulkan_renderer_update_global_uniform(Mat4 projection, Mat4 view, Vec3 view_positioni, Vec4 ambient_color, i32 mode);
+
 void vulkan_renderer_backend_resize(RendererBackend* backend, i32 width, i32 height);

@@ -62,9 +62,9 @@ KENZINE_INLINE Mat4 mat4_proj_perspective(f32 fov, f32 aspect_ratio, f32 near, f
 
     result.elements[0] = 1.0f / (aspect_ratio * tan_half_fov);
     result.elements[5] = 1.0f / tan_half_fov;
-    result.elements[10] = -((far + near) / (near - far));
+    result.elements[10] = -((far + near) / (far - near));
     result.elements[11] = -1.0f;
-    result.elements[14] = -((2.0f * far * near) / (near - far));
+    result.elements[14] = -((2.0f * far * near) / (far - near));
     return result;
 }
 

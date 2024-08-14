@@ -11,6 +11,7 @@ bool renderer_backend_create(RendererBackendType type, RendererBackend* out_back
         out_backend->resize = vulkan_renderer_backend_resize;
         out_backend->begin_frame = vulkan_renderer_backend_begin_frame;
         out_backend->end_frame = vulkan_renderer_backend_end_frame;
+        out_backend->update_global_uniform = vulkan_renderer_update_global_uniform;
 
         return true;
     }
@@ -25,4 +26,5 @@ void renderer_backend_destroy(RendererBackend* backend)
     backend->resize = 0;
     backend->begin_frame = 0;
     backend->end_frame = 0;
+    backend->update_global_uniform = 0;
 }

@@ -193,10 +193,10 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
     // TODO: test code
     const u32 vertex_count = 4;
     Vertex3d verts[vertex_count] = {
-        {0.0f, -0.5f, 0.0f},
-        {0.5f, 0.5f, 0.0f},
-        {0, 0.5f, 0.0f},
-        {0.5f, -0.5f, 0.0f}
+        {-.5f * 10, -0.5f * 10, 0.0f},
+        {0.5f * 10, 0.5f * 10, 0.0f},
+        {-0.5f * 10, 0.5f * 10, 0.0f},
+        {0.5f * 10, -0.5f * 10, 0.0f}
     };
 
     const u32 index_count = 6;
@@ -332,14 +332,6 @@ bool vulkan_renderer_backend_begin_frame(RendererBackend* backend, f64 delta_tim
 
     vulkan_renderpass_begin(command_buffer, &context.main_render_pass, context.swapchain.framebuffers[context.image_index].framebuffer);
 
-    // TODO: test code
-    vulkan_obj_shader_use(&context, &context.obj_shader);
-
-    VkDeviceSize offsets[1] = {0};
-    vkCmdBindVertexBuffers(command_buffer->command_buffer, 0, 1, &context.obj_vertex_buffer.buffer, offsets);
-    vkCmdBindIndexBuffer(command_buffer->command_buffer, context.obj_index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32); 
-    vkCmdDrawIndexed(command_buffer->command_buffer, 6, 1, 0, 0, 0);
-
     return true;
 }
 
@@ -384,6 +376,25 @@ bool vulkan_renderer_backend_end_frame(RendererBackend* backend, f64 delta_time)
         context.image_index);
 
     return true;
+}
+
+void vulkan_renderer_update_global_uniform(Mat4 projection, Mat4 view, Vec3 view_positioni, Vec4 ambient_color, i32 mode)
+{
+    VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
+    vulkan_obj_shader_use(&context, &context.obj_shader);
+
+    context.obj_shader.global_uniform.projection = projection;
+    context.obj_shader.global_uniform.view = view;
+
+    vulkan_obj_shader_update_global_uniform(&context, &context.obj_shader);
+
+        // TODO: test code
+    vulkan_obj_shader_use(&context, &context.obj_shader);
+
+    VkDeviceSize offsets[1] = {0};
+    vkCmdBindVertexBuffers(command_buffer->command_buffer, 0, 1, &context.obj_vertex_buffer.buffer, offsets);
+    vkCmdBindIndexBuffer(command_buffer->command_buffer, context.obj_index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32); 
+    vkCmdDrawIndexed(command_buffer->command_buffer, 6, 1, 0, 0, 0);
 }
 
 void vulkan_renderer_backend_resize(RendererBackend* backend, i32 width, i32 height)
