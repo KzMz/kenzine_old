@@ -49,6 +49,8 @@ void destroy_sync_objects(RendererBackend* backend);
 
 bool recreate_swapchain(RendererBackend* backend);
 
+void upload_data(VulkanContext* context, VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, u64 offset, u64 size, void* data);
+
 bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name)
 {
     context.find_memory_index = find_memory_index;
@@ -188,6 +190,28 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
 
     create_buffers(&context);
 
+    // TODO: test code
+    const u32 vertex_count = 4;
+    Vertex3d verts[vertex_count] = {
+        {0.0f, -0.5f, 0.0f},
+        {0.5f, 0.5f, 0.0f},
+        {0, 0.5f, 0.0f},
+        {0.5f, -0.5f, 0.0f}
+    };
+
+    const u32 index_count = 6;
+    u32 indices[index_count] = {0, 1, 2, 0, 3, 1};
+
+    upload_data(
+        &context, 
+        context.device.graphics_command_pool, 
+        VK_NULL_HANDLE, context.device.graphics_queue, &context.obj_vertex_buffer, 0, sizeof(Vertex3d) * vertex_count, verts);
+    upload_data(
+        &context, 
+        context.device.graphics_command_pool, 
+        VK_NULL_HANDLE, context.device.graphics_queue, &context.obj_index_buffer, 0, sizeof(u32) * index_count, indices);
+    // TODO: test code end
+
     log_info("Vulkan renderer initialized successfully.");
     return true;
 }
@@ -307,6 +331,14 @@ bool vulkan_renderer_backend_begin_frame(RendererBackend* backend, f64 delta_tim
     context.main_render_pass.h = context.framebuffer_height;
 
     vulkan_renderpass_begin(command_buffer, &context.main_render_pass, context.swapchain.framebuffers[context.image_index].framebuffer);
+
+    // TODO: test code
+    vulkan_obj_shader_use(&context, &context.obj_shader);
+
+    VkDeviceSize offsets[1] = {0};
+    vkCmdBindVertexBuffers(command_buffer->command_buffer, 0, 1, &context.obj_vertex_buffer.buffer, offsets);
+    vkCmdBindIndexBuffer(command_buffer->command_buffer, context.obj_index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32); 
+    vkCmdDrawIndexed(command_buffer->command_buffer, 6, 1, 0, 0, 0);
 
     return true;
 }
@@ -618,4 +650,27 @@ void destroy_buffers(VulkanContext* context)
 {
     vulkan_buffer_destroy(context, &context->obj_vertex_buffer);
     vulkan_buffer_destroy(context, &context->obj_index_buffer);
+}
+
+void upload_data(VulkanContext* context, VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, u64 offset, u64 size, void* data)
+{
+    VkBufferUsageFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    VulkanBuffer staging_buffer = {0};
+    vulkan_buffer_create(context, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true, &staging_buffer);
+
+    vulkan_buffer_load_data(context, &staging_buffer, 0, size, 0, data);
+
+    vulkan_buffer_copy(
+        context,
+        pool,
+        fence,
+        queue,
+        staging_buffer.buffer,
+        0,
+        buffer->buffer,
+        offset,
+        size
+    );
+
+    vulkan_buffer_destroy(context, &staging_buffer);
 }

@@ -103,5 +103,6 @@ void vulkan_obj_shader_destroy(VulkanContext* context, VulkanObjShader* shader)
 
 void vulkan_obj_shader_use(VulkanContext* context, VulkanObjShader* shader)
 {
-
+    u32 image_index = context->image_index;
+    vulkan_pipeline_bind(&context->graphics_command_buffers[image_index], VK_PIPELINE_BIND_POINT_GRAPHICS, &shader->pipeline);
 }
