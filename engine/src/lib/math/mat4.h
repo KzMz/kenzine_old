@@ -266,7 +266,7 @@ KENZINE_INLINE Mat4 mat4_euler_rotation(f32 x, f32 y, f32 z)
     Mat4 ry = mat4_euler_y(y);
     Mat4 rz = mat4_euler_z(z);
 
-    Mat4 result = mat4_mul(rx, rx);
+    Mat4 result = mat4_mul(rx, ry);
     result = mat4_mul(result, rz);
     return result;
 }

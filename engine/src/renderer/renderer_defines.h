@@ -28,6 +28,7 @@ typedef void (*RendererBackendResize)(struct RendererBackend* backend, i32 width
 typedef bool (*RendererBackendBeginFrame)(struct RendererBackend* backend, f64 delta_time);
 typedef bool (*RendererBackendEndFrame)(struct RendererBackend* backend, f64 delta_time);
 typedef void (*RendererBackendUpdateGlobalUniform)(Mat4 proj, Mat4 view, Vec3 view_position, Vec4 ambient_color, i32 mode);
+typedef void (*RendererBackendUpdateModel)(Mat4 model);
 
 typedef struct RendererBackend 
 {
@@ -42,6 +43,7 @@ typedef struct RendererBackend
     RendererBackendEndFrame end_frame;
 
     RendererBackendUpdateGlobalUniform update_global_uniform;
+    RendererBackendUpdateModel update_model;
 } RendererBackend;
 
 typedef struct RenderPacket 

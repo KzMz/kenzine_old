@@ -114,7 +114,7 @@ bool vulkan_obj_shader_create(VulkanContext* context, VulkanObjShader* out_shade
         return false;
     }
 
-    const i32 global_uniform_count = 3;
+    const i32 global_uniform_count = 1;
     if (!vulkan_buffer_create(
         context,
         sizeof(GlobalUniform) * global_uniform_count,
@@ -179,36 +179,32 @@ void vulkan_obj_shader_update_global_uniform(VulkanContext* context, VulkanObjSh
     VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].command_buffer;
     VkDescriptorSet descriptor_set = shader->descriptor_set[image_index];
 
-    if (!shader->descriptor_updated[image_index])
-    {
-        u32 range = sizeof(GlobalUniform);
-        u64 offset = sizeof(GlobalUniform) * image_index;
+    u32 range = sizeof(GlobalUniform);
+    u64 offset = 0;
 
-        vulkan_buffer_load_data(
-            context,
-            &shader->global_uniform_buffer,
-            offset,
-            range,
-            0,
-            &shader->global_uniform
-        );
+    vulkan_buffer_load_data(
+        context,
+        &shader->global_uniform_buffer,
+        offset,
+        range,
+        0,
+        &shader->global_uniform
+    );
 
-        VkDescriptorBufferInfo buffer_info;
-        buffer_info.buffer = shader->global_uniform_buffer.buffer;
-        buffer_info.offset = offset;
-        buffer_info.range = range;
+    VkDescriptorBufferInfo buffer_info;
+    buffer_info.buffer = shader->global_uniform_buffer.buffer;
+    buffer_info.offset = offset;
+    buffer_info.range = range;
 
-        VkWriteDescriptorSet descriptor_write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        descriptor_write.dstSet = descriptor_set;
-        descriptor_write.dstBinding = 0;
-        descriptor_write.dstArrayElement = 0;
-        descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptor_write.descriptorCount = 1;
-        descriptor_write.pBufferInfo = &buffer_info;
+    VkWriteDescriptorSet descriptor_write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    descriptor_write.dstSet = descriptor_set;
+    descriptor_write.dstBinding = 0;
+    descriptor_write.dstArrayElement = 0;
+    descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptor_write.descriptorCount = 1;
+    descriptor_write.pBufferInfo = &buffer_info;
 
-        vkUpdateDescriptorSets(context->device.logical_device, 1, &descriptor_write, 0, NULL);
-        shader->descriptor_updated[image_index] = true;
-    }
+    vkUpdateDescriptorSets(context->device.logical_device, 1, &descriptor_write, 0, NULL);
 
     vkCmdBindDescriptorSets(
         command_buffer,
@@ -219,5 +215,20 @@ void vulkan_obj_shader_update_global_uniform(VulkanContext* context, VulkanObjSh
         &descriptor_set,
         0,
         NULL
+    );
+}
+
+void vulkan_obj_shader_update_model(VulkanContext* context, VulkanObjShader* shader, Mat4 model)
+{
+    u32 image_index = context->image_index;
+    VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].command_buffer;
+
+    vkCmdPushConstants(
+        command_buffer,
+        shader->pipeline.layout,
+        VK_SHADER_STAGE_VERTEX_BIT,
+        0,
+        sizeof(Mat4),
+        &model
     );
 }

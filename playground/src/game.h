@@ -2,10 +2,15 @@
 
 #include <defines.h>
 #include <game_defines.h>
+#include <lib/math/math_defines.h>
 
 typedef struct GameState 
 {
     f64 delta_time;
+    Mat4 view;
+    Vec3 camera_position;
+    Vec3 camera_euler;
+    bool camera_view_dirty;
 } GameState;
 
 bool game_init(Game* game);

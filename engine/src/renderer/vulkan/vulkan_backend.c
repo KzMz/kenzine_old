@@ -387,8 +387,14 @@ void vulkan_renderer_update_global_uniform(Mat4 projection, Mat4 view, Vec3 view
     context.obj_shader.global_uniform.view = view;
 
     vulkan_obj_shader_update_global_uniform(&context, &context.obj_shader);
+}
 
-        // TODO: test code
+void vulkan_renderer_update_model(Mat4 model)
+{
+    vulkan_obj_shader_update_model(&context, &context.obj_shader, model);
+
+    VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
+    // TODO: test code
     vulkan_obj_shader_use(&context, &context.obj_shader);
 
     VkDeviceSize offsets[1] = {0};
