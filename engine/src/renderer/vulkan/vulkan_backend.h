@@ -9,6 +9,14 @@ bool vulkan_renderer_backend_begin_frame(RendererBackend* backend, f64 delta_tim
 bool vulkan_renderer_backend_end_frame(RendererBackend* backend, f64 delta_time);
 
 void vulkan_renderer_update_global_uniform(Mat4 projection, Mat4 view, Vec3 view_positioni, Vec4 ambient_color, i32 mode);
-void vulkan_renderer_update_model(Mat4 model);
+void vulkan_renderer_update_model(GeometryRenderData data);
 
 void vulkan_renderer_backend_resize(RendererBackend* backend, i32 width, i32 height);
+
+void vulkan_renderer_create_texture(
+    const char* name, 
+    i32 width, i32 height, 
+    u8 channel_count, const u8* pixels, 
+    bool has_transparency, bool auto_release, 
+    Texture* out_texture);
+void vulkan_renderer_destroy_texture(Texture* texture);

@@ -2,6 +2,7 @@
 
 #include "defines.h"
 #include "lib/math/math_defines.h"
+#include "resources/resource_defines.h"
 
 typedef enum RendererBackendType
 {
@@ -19,6 +20,23 @@ typedef struct GlobalUniform
     Mat4 reserved1;
 } GlobalUniform;
 
+typedef struct LocalUniform
+{
+    Vec4 diffuse_color;
+    Vec4 reserved0;
+    Vec4 reserved1;
+    Vec4 reserved2;
+} LocalUniform;
+
+#define MAX_TEXTURES 16
+
+typedef struct GeometryRenderData
+{
+    u64 object_id;
+    Mat4 model;
+    Texture* textures[MAX_TEXTURES];
+} GeometryRenderData;
+
 struct RendererBackend;
 struct Platform;
 
@@ -28,7 +46,9 @@ typedef void (*RendererBackendResize)(struct RendererBackend* backend, i32 width
 typedef bool (*RendererBackendBeginFrame)(struct RendererBackend* backend, f64 delta_time);
 typedef bool (*RendererBackendEndFrame)(struct RendererBackend* backend, f64 delta_time);
 typedef void (*RendererBackendUpdateGlobalUniform)(Mat4 proj, Mat4 view, Vec3 view_position, Vec4 ambient_color, i32 mode);
-typedef void (*RendererBackendUpdateModel)(Mat4 model);
+typedef void (*RendererBackendUpdateModel)(GeometryRenderData data);
+typedef void (*RendererBackendCreateTexture)(const char* name, i32 width, i32 height, u8 channel_count, const u8* pixels, bool has_transparency, bool auto_release, Texture* out_texture);
+typedef void (*RendererBackendDestroyTexture)(Texture* texture);
 
 typedef struct RendererBackend 
 {
@@ -44,6 +64,9 @@ typedef struct RendererBackend
 
     RendererBackendUpdateGlobalUniform update_global_uniform;
     RendererBackendUpdateModel update_model;
+
+    RendererBackendCreateTexture create_texture;
+    RendererBackendDestroyTexture destroy_texture;
 } RendererBackend;
 
 typedef struct RenderPacket 

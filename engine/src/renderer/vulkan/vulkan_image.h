@@ -23,4 +23,20 @@ void vulkan_image_view_create(
     VkImageAspectFlags aspect_flags
 );
 
+void vulkan_image_transition_layout(
+    VulkanContext* context,
+    VulkanCommandBuffer* command_buffer,
+    VulkanImage* image,
+    VkFormat format,
+    VkImageLayout old_layout,
+    VkImageLayout new_layout
+);
+
+void vulkan_image_copy_from_buffer(
+    VulkanContext* context,
+    VulkanImage* image,
+    VkBuffer buffer,
+    VulkanCommandBuffer* command_buffer
+);
+
 void vulkan_image_destroy(VulkanContext* context, VulkanImage* image);

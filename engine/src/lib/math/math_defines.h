@@ -75,4 +75,5 @@ typedef union Mat4_u
 typedef struct Vertex3d 
 {
     Vec3 position;
+    Vec2 texcoord;
 } Vertex3d;

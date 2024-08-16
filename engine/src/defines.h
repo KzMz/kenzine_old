@@ -86,7 +86,7 @@ if defined(__ANDROID__)
 #endif
 #endif
 
-#define mem_zero(buffer) memset((buffer), 0, sizeof(buffer))
+//#define mem_zero(buffer) memset((buffer), 0, sizeof(buffer))
 #define kz_clamp(value, min, max) ((value) <= (min) ? (min) : ((value) >= (max) ? (max) : (value)))
 
 #ifdef _MSC_VER
@@ -96,3 +96,6 @@ if defined(__ANDROID__)
 #define KENZINE_INLINE static inline
 #define KENZINE_NO_INLINE 
 #endif
+
+#define INVALID_ID 0
+#define MAX_ID 0xFFFFFFFF

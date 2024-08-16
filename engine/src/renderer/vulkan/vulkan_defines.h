@@ -9,6 +9,8 @@
 #define MAX_PHYSICAL_DEVICES 32
 #define MAX_QUEUE_FAMILIES 32
 #define OBJECT_SHADER_STAGE_COUNT 2
+#define MAX_OBJECT_COUNT 1024
+#define OBJECT_SHADER_DESCRIPTOR_COUNT 2
 
 #define VK_ASSERT(expr) do { kz_assert((expr) == VK_SUCCESS); } while(0)
 
@@ -143,25 +145,48 @@ typedef struct VulkanPipeline
     VkPipelineLayout layout;
 } VulkanPipeline;
 
+typedef struct VulkanDescriptorState
+{
+    // One per frame
+    u32 generations[3];
+} VulkanDescriptorState;
+
+typedef struct VulkanObjShaderState
+{
+    // Per frame
+    VkDescriptorSet descriptor_sets[3];
+
+    // Per descriptor
+    VulkanDescriptorState descriptor_states[OBJECT_SHADER_DESCRIPTOR_COUNT];
+} VulkanObjShaderState;
+
 typedef struct VulkanObjShader
 {
     VulkanShaderStage stages[OBJECT_SHADER_STAGE_COUNT];
     VulkanPipeline pipeline;
 
-    VkDescriptorPool descriptor_pool;
-    VkDescriptorSetLayout descriptor_set_layout;
+    VkDescriptorPool global_descriptor_pool;
+    VkDescriptorSetLayout global_descriptor_set_layout;
 
-    VkDescriptorSet descriptor_set[3];
-    bool descriptor_updated[3];
+    VkDescriptorSet global_descriptor_set[3];
 
     GlobalUniform global_uniform;
     VulkanBuffer global_uniform_buffer;
+
+    VkDescriptorPool local_descriptor_pool;
+    VkDescriptorSetLayout local_descriptor_set_layout;
+    VulkanBuffer local_uniform_buffer;
+    u64 local_uniform_buffer_index;
+
+    VulkanObjShaderState object_states[MAX_OBJECT_COUNT];
 } VulkanObjShader;
 
 typedef i32 (*VulkanFindMemoryIndex)(u32 type_filter, u32 property_flags);
 
 typedef struct VulkanContext 
 {
+    f64 frame_delta_time;
+
     u32 framebuffer_width;
     u32 framebuffer_height;
     u32 framebuffer_size_generated;
@@ -201,3 +226,9 @@ typedef struct VulkanContext
     u64 geometry_vertex_offset;
     u64 geometry_index_offset;
 } VulkanContext;
+
+typedef struct VulkanTexture
+{
+    VulkanImage image;
+    VkSampler sampler;
+} VulkanTexture;

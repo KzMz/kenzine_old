@@ -31,6 +31,7 @@
         "filesystem.h": "c",
         "renderer_defines.h": "c",
         "renderer_frontend.h": "c",
-        "mat4.h": "c"
+        "mat4.h": "c",
+        "renderer_backend.h": "c"
     }
 }

@@ -81,6 +81,93 @@ void vulkan_image_view_create(
     VK_ASSERT(vkCreateImageView(context->device.logical_device, &view_info, context->allocator, &image->view));
 }
 
+void vulkan_image_transition_layout(
+    VulkanContext* context,
+    VulkanCommandBuffer* command_buffer,
+    VulkanImage* image,
+    VkFormat format,
+    VkImageLayout old_layout,
+    VkImageLayout new_layout
+)
+{
+    VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    barrier.oldLayout = old_layout;
+    barrier.newLayout = new_layout;
+    barrier.srcQueueFamilyIndex = context->device.graphics_queue_index;
+    barrier.dstQueueFamilyIndex = context->device.graphics_queue_index;
+    barrier.image = image->image;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    VkPipelineStageFlags source_stage;
+    VkPipelineStageFlags destination_stage;
+
+    if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+        source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
+    else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else
+    {
+        log_fatal("Unsupported layout transition.");
+        return;
+    }
+
+    vkCmdPipelineBarrier(
+        command_buffer->command_buffer,
+        source_stage, destination_stage,
+        0,
+        0, NULL,
+        0, NULL,
+        1, &barrier
+    );
+}
+
+void vulkan_image_copy_from_buffer(
+    VulkanContext* context,
+    VulkanImage* image,
+    VkBuffer buffer,
+    VulkanCommandBuffer* command_buffer
+)
+{
+    VkBufferImageCopy region = {0};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+
+    region.imageExtent.width = image->width;
+    region.imageExtent.height = image->height;
+    region.imageExtent.depth = 1;
+
+    vkCmdCopyBufferToImage(
+        command_buffer->command_buffer,
+        buffer,
+        image->image,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &region
+    );
+}
+
 void vulkan_image_destroy(VulkanContext* context, VulkanImage* image)
 {
     if (image->view)

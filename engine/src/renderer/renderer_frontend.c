@@ -7,6 +7,7 @@
 #include "lib/math/vec4.h"
 #include "lib/math/mat4.h"
 #include "lib/math/quat.h"
+#include "resources/resource_defines.h"
 
 typedef struct RendererState
 {
@@ -15,6 +16,8 @@ typedef struct RendererState
     Mat4 view;
     f32 near_clip;
     f32 far_clip;
+
+    Texture default_texture;
 } RendererState;
 
 static RendererState* renderer_state = 0;
@@ -39,6 +42,39 @@ bool renderer_init(void* state, const char* app_name)
     Mat4 view = mat4_translation((Vec3) { 0, 0, 30 });
     renderer_state->view = mat4_inverse(view);
 
+    // NOTE: Create default texture
+    const u32 texture_size = 256;
+    const u32 bpp = 4;
+    const u32 pixels_count = texture_size * texture_size * bpp;
+    u8 pixels[pixels_count];
+    for (u32 i = 0; i < pixels_count; i++)
+    {
+        pixels[i] = 255;
+    }
+
+    for (u64 row = 0; row < texture_size; row++)
+    {
+        for (u64 col = 0; col < texture_size; col++)
+        {
+            u64 index = (row * texture_size + col) * bpp;
+            if (row % 2 == col % 2)
+            {
+                pixels[index + 0] = 0;
+                pixels[index + 1] = 0;
+            }
+        }
+    }
+
+    renderer_create_texture(
+        "default",
+        texture_size, texture_size,
+        bpp,
+        pixels,
+        false,
+        false,
+        &renderer_state->default_texture
+    );
+
     return true;
 }
 
@@ -49,6 +85,8 @@ void renderer_shutdown(void)
         log_warning("Renderer is not initialized. Nothing to shutdown.");
         return;
     }
+
+    renderer_destroy_texture(&renderer_state->default_texture);
 
     renderer_state->backend->shutdown(renderer_state->backend);
     renderer_backend_destroy(renderer_state->backend);
@@ -79,7 +117,11 @@ bool renderer_draw_frame(RenderPacket* packet)
 
         Quat rotation = quat_from_axis_angle(vec3_forward(), angle, false);
         Mat4 model = quat_to_rot_mat4(rotation, vec3_zero());
-        renderer_state->backend->update_model(model);
+        GeometryRenderData data = { 0 };
+        data.object_id = 1;
+        data.model = model;
+        data.textures[0] = &renderer_state->default_texture;
+        renderer_state->backend->update_model(data);
 
         bool result = renderer_end_frame(packet->delta_time);
         if (!result) 
@@ -120,4 +162,19 @@ u64 renderer_get_state_size(void)
 void renderer_set_view(Mat4 view)
 {
     renderer_state->view = view;
+}
+
+void renderer_create_texture(
+    const char* name, 
+    i32 width, i32 height, 
+    u8 channel_count, const u8* pixels, 
+    bool has_transparency, bool auto_release, 
+    Texture* out_texture)
+{
+    renderer_state->backend->create_texture(name, width, height, channel_count, pixels, has_transparency, auto_release, out_texture);
+}
+
+void renderer_destroy_texture(Texture* texture)
+{
+    renderer_state->backend->destroy_texture(texture);
 }
