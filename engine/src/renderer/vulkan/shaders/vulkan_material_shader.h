@@ -3,7 +3,7 @@
 #include "../vulkan_defines.h"
 #include "../../renderer_defines.h"
 
-bool vulkan_material_shader_create(VulkanContext* context, Texture* default_diffuse, VulkanMaterialShader* out_shader);
+bool vulkan_material_shader_create(VulkanContext* context, VulkanMaterialShader* out_shader);
 void vulkan_material_shader_destroy(VulkanContext* context, VulkanMaterialShader* shader);
 
 void vulkan_material_shader_use(VulkanContext* context, VulkanMaterialShader* shader);

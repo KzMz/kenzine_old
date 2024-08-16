@@ -8,6 +8,8 @@
 
 #include "renderer/renderer_frontend.h"
 
+#include "systems/texture_system.h"
+
 typedef struct AppState
 {
     Game* game;
@@ -32,6 +34,9 @@ typedef struct AppState
 
     void* renderer_state;
     u64 renderer_state_size;
+
+    void* texture_system_state;
+    u64 texture_system_state_size;
 } AppState;
 
 static AppState* app_state = 0;
@@ -105,6 +110,17 @@ KENZINE_API bool app_init(Game* game)
     if (!renderer_init(renderer_state, game->app_config.name))
     {
         log_fatal("Failed to initialize renderer");
+        return false;
+    }
+
+    // Texture system
+    TextureSystemConfig texture_config = {0};
+    texture_config.max_textures = 65536;
+    void* texture_system_state = memory_alloc(texture_system_get_state_size(), MEMORY_TAG_APP);
+    app_state->texture_system_state = texture_system_state;
+    if (!texture_system_init(texture_system_state, texture_config))
+    {
+        log_fatal("Failed to initialize texture system");
         return false;
     }
 
@@ -211,6 +227,8 @@ KENZINE_API void app_shutdown(void)
     event_unsubscribe(EVENT_CODE_APPLICATION_QUIT, 0, app_on_event);
     event_unsubscribe(EVENT_CODE_KEY_PRESSED, 0, app_on_key);
     event_unsubscribe(EVENT_CODE_KEY_RELEASED, 0, app_on_key);
+
+    texture_system_shutdown();
 
     event_system_shutdown();
 

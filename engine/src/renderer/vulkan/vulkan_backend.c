@@ -183,7 +183,7 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
 
     create_sync_objects(backend);
 
-    if (!vulkan_material_shader_create(&context, backend->default_diffuse, &context.material_shader))
+    if (!vulkan_material_shader_create(&context, &context.material_shader))
     {
         log_fatal("Failed to create object shader.");
         return false;
@@ -230,10 +230,6 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
         log_error("Failed to acquire resources for object shader.");
         return false;
     }
-
-
-
-    // TODO: test code end
 
     log_info("Vulkan renderer initialized successfully.");
     return true;
@@ -440,7 +436,7 @@ void vulkan_renderer_create_texture(
     const char* name, 
     i32 width, i32 height, 
     u8 channel_count, const u8* pixels, 
-    bool has_transparency, bool auto_release, 
+    bool has_transparency, 
     Texture* out_texture)
 {
     out_texture->width = width;

@@ -20,6 +20,6 @@ void renderer_create_texture(
     const char* name, 
     i32 width, i32 height, 
     u8 channel_count, const u8* pixels, 
-    bool has_transparency, bool auto_release, 
+    bool has_transparency,
     Texture* out_texture);
 void renderer_destroy_texture(Texture* texture);

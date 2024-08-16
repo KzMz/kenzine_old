@@ -6,13 +6,12 @@
 #include "lib/math/math.h"
 #include "../vulkan_pipeline.h"
 #include "../vulkan_buffer.h"   
+#include "systems/texture_system.h"
 
 #define BUILTIN_SHADER_NAME_MATERIAL "Builtin.MaterialShader"
 
-bool vulkan_material_shader_create(VulkanContext* context, Texture* default_diffuse, VulkanMaterialShader* out_shader)
+bool vulkan_material_shader_create(VulkanContext* context, VulkanMaterialShader* out_shader)
 {
-    out_shader->default_diffuse = default_diffuse;
-
     char stage_type_str[OBJECT_SHADER_STAGE_COUNT][5] = {
         "vert",
         "frag"
@@ -195,7 +194,7 @@ bool vulkan_material_shader_create(VulkanContext* context, Texture* default_diff
         return false;
     }
 
-    out_shader->local_uniform_buffer_index = INVALID_ID + 1;
+    out_shader->local_uniform_buffer_index = 0;
     return true;
 }
 
@@ -285,7 +284,7 @@ void vulkan_material_shader_update_object(VulkanContext* context, VulkanMaterial
         &render_data.model
     );
 
-    VulkanObjShaderState* state = &shader->object_states[render_data.object_id - 1];
+    VulkanObjShaderState* state = &shader->object_states[render_data.object_id];
     VkDescriptorSet descriptor_set = state->descriptor_sets[image_index];
 
     VkWriteDescriptorSet descriptor_writes[OBJECT_SHADER_DESCRIPTOR_COUNT] = {0};
@@ -294,7 +293,7 @@ void vulkan_material_shader_update_object(VulkanContext* context, VulkanMaterial
 
     // Descriptor 0 - Uniform buffer
     u32 range = sizeof(LocalUniform);
-    u64 offset = sizeof(LocalUniform) * (render_data.object_id - 1);
+    u64 offset = sizeof(LocalUniform) * (render_data.object_id);
     LocalUniform local_uniform;
 
     static f32 color = 0.0f;
@@ -339,14 +338,15 @@ void vulkan_material_shader_update_object(VulkanContext* context, VulkanMaterial
     {
         Texture* t = render_data.textures[sampler_index];
         u32* generation = &state->descriptor_states[descriptor_index].generations[image_index];
+        u32* id = &state->descriptor_states[descriptor_index].ids[image_index];
 
         if (t && t->generation == INVALID_ID)
         {
-            t = shader->default_diffuse;
+            t = texture_system_get_default();
             *generation = INVALID_ID;
         }
 
-        if (t != NULL && (*generation != t->generation || *generation == INVALID_ID))
+        if (t != NULL && (*id != t->id || *generation != t->generation || *generation == INVALID_ID))
         {
             VulkanTexture* texture_data = (VulkanTexture*) t->data;
             image_info[sampler_index].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -395,12 +395,13 @@ bool vulkan_material_shader_acquire_resources(VulkanContext* context, VulkanMate
     shader->local_uniform_buffer_index++;
 
     u32 obj_id = *out_id;
-    VulkanObjShaderState* state = &shader->object_states[obj_id - 1];
+    VulkanObjShaderState* state = &shader->object_states[obj_id];
     for (u32 i = 0; i < OBJECT_SHADER_DESCRIPTOR_COUNT; ++i)
     {
         for (u32 j = 0; j < 3; ++j)
         {
             state->descriptor_states[i].generations[j] = INVALID_ID;
+            state->descriptor_states[i].ids[j] = INVALID_ID;    
         }
     }
 
@@ -427,7 +428,7 @@ bool vulkan_material_shader_acquire_resources(VulkanContext* context, VulkanMate
 
 void vulkan_material_shader_release_resources(VulkanContext* context, VulkanMaterialShader* shader, u64 id)
 {
-    VulkanObjShaderState* state = &shader->object_states[id - 1];
+    VulkanObjShaderState* state = &shader->object_states[id];
 
     const u32 descriptor_count = 3;
     VK_ASSERT(vkFreeDescriptorSets(context->device.logical_device, shader->local_descriptor_pool, descriptor_count, state->descriptor_sets));
@@ -437,6 +438,7 @@ void vulkan_material_shader_release_resources(VulkanContext* context, VulkanMate
         for (u32 j = 0; j < 3; ++j)
         {
             state->descriptor_states[i].generations[j] = INVALID_ID;
+            state->descriptor_states[i].ids[j] = INVALID_ID;
         }
     }
 }

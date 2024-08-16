@@ -47,14 +47,12 @@ typedef bool (*RendererBackendBeginFrame)(struct RendererBackend* backend, f64 d
 typedef bool (*RendererBackendEndFrame)(struct RendererBackend* backend, f64 delta_time);
 typedef void (*RendererBackendUpdateGlobalUniform)(Mat4 proj, Mat4 view, Vec3 view_position, Vec4 ambient_color, i32 mode);
 typedef void (*RendererBackendUpdateModel)(GeometryRenderData data);
-typedef void (*RendererBackendCreateTexture)(const char* name, i32 width, i32 height, u8 channel_count, const u8* pixels, bool has_transparency, bool auto_release, Texture* out_texture);
+typedef void (*RendererBackendCreateTexture)(const char* name, i32 width, i32 height, u8 channel_count, const u8* pixels, bool has_transparency, Texture* out_texture);
 typedef void (*RendererBackendDestroyTexture)(Texture* texture);
 
 typedef struct RendererBackend 
 {
     u64 frame_number;
-
-    Texture* default_diffuse;
 
     RendererBackendInit init;
     RendererBackendShutdown shutdown;

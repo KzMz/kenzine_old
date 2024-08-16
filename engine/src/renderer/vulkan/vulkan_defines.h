@@ -151,6 +151,7 @@ typedef struct VulkanDescriptorState
 {
     // One per frame
     u32 generations[3];
+    u32 ids[3];
 } VulkanDescriptorState;
 
 typedef struct VulkanObjShaderState
@@ -181,8 +182,6 @@ typedef struct VulkanMaterialShader
     u64 local_uniform_buffer_index;
 
     VulkanObjShaderState object_states[MAX_OBJECT_COUNT];
-
-    Texture* default_diffuse;
 } VulkanMaterialShader;
 
 typedef i32 (*VulkanFindMemoryIndex)(u32 type_filter, u32 property_flags);

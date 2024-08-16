@@ -98,7 +98,7 @@ if defined(__ANDROID__)
 #define KENZINE_NO_INLINE 
 #endif
 
-#define INVALID_ID 0
+#define INVALID_ID 0xFFFFFFFF
 #define MAX_ID 0xFFFFFFFF
 
 #define is_same_type(a, b) (__builtin_types_compatible_p(__typeof__(a), __typeof__(b)))
