@@ -5,6 +5,7 @@
 
 #include <renderer/renderer_frontend.h>
 #include <lib/math/mat4.h>
+#include <core/event.h>
 
 void update_view_matrix(Game* game)
 {
@@ -79,6 +80,12 @@ bool game_update(Game* game, f64 delta_time)
     if (input_key_down(KEYBOARD_DEVICE_ID, KEY_DOWN))
     {
         camera_pitch(game, -1.0f * delta_time);
+    }
+
+    if (input_key_up(KEYBOARD_DEVICE_ID, KEY_T) && input_key_was_down(KEYBOARD_DEVICE_ID, KEY_T))
+    {
+        EventContext context = { 0 };
+        event_trigger(EVENT_CODE_DEBUG0, game, context);
     }
 
     f32 temp_speed = 50.0f;

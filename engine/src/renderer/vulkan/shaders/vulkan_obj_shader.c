@@ -9,8 +9,10 @@
 
 #define BUILTIN_SHADER_NAME_OBJECT "Builtin.ObjectShader"
 
-bool vulkan_obj_shader_create(VulkanContext* context, VulkanObjShader* out_shader)
+bool vulkan_obj_shader_create(VulkanContext* context, Texture* default_diffuse, VulkanObjShader* out_shader)
 {
+    out_shader->default_diffuse = default_diffuse;
+
     char stage_type_str[OBJECT_SHADER_STAGE_COUNT][5] = {
         "vert",
         "frag"
@@ -268,7 +270,7 @@ void vulkan_obj_shader_update_global_uniform(VulkanContext* context, VulkanObjSh
     );
 }
 
-void vulkan_obj_shader_update_model(VulkanContext* context, VulkanObjShader* shader, GeometryRenderData render_data)
+void vulkan_obj_shader_update_object(VulkanContext* context, VulkanObjShader* shader, GeometryRenderData render_data)
 {
     u32 image_index = context->image_index;
     VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].command_buffer;
@@ -336,6 +338,12 @@ void vulkan_obj_shader_update_model(VulkanContext* context, VulkanObjShader* sha
     {
         Texture* t = render_data.textures[sampler_index];
         u32* generation = &state->descriptor_states[descriptor_index].generations[image_index];
+
+        if (t && t->generation == INVALID_ID)
+        {
+            t = shader->default_diffuse;
+            *generation = INVALID_ID;
+        }
 
         if (t != NULL && (*generation != t->generation || *generation == INVALID_ID))
         {

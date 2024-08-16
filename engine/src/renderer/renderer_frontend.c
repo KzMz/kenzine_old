@@ -9,6 +9,14 @@
 #include "lib/math/quat.h"
 #include "resources/resource_defines.h"
 
+// TODO: temporary
+#include "lib/string.h"
+#include "core/event.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "vendor/stb_image.h"
+// TODO: end temporary
+
 typedef struct RendererState
 {
     RendererBackend* backend;
@@ -18,14 +26,123 @@ typedef struct RendererState
     f32 far_clip;
 
     Texture default_texture;
+
+    // TODO: temporary
+    Texture test_diffuse;
+    // TODO: end temporary
 } RendererState;
 
 static RendererState* renderer_state = 0;
+
+void create_texture(Texture* t)
+{
+    memory_zero(t, sizeof(Texture));
+    t->generation = INVALID_ID;
+}
+
+bool load_texture(const char* texture_name, Texture* out_texture)
+{
+    char* format_str = "../assets/textures/%s.%s";
+    const i32 required_channel_count = 4;
+    stbi_set_flip_vertically_on_load(true);
+    
+    const i32 max_path_length = 512;
+    char path[max_path_length];
+    string_format(path, format_str, texture_name, "png");
+
+    Texture tmp;
+    u8* data = stbi_load(
+        path,
+        (i32*) &tmp.width,
+        (i32*) &tmp.height,
+        (i32*) &tmp.channel_count,
+        required_channel_count
+    );
+
+    tmp.channel_count = required_channel_count;
+
+    if (data == NULL)
+    {
+        log_warning("Failed to load texture: %s. Reason: %s", path, stbi_failure_reason());
+        return false;
+    }
+
+    u32 generation = out_texture->generation;
+    out_texture->generation = INVALID_ID;
+
+    u64 total_size = tmp.width * tmp.height * tmp.channel_count;
+    bool has_transparency = false;
+    for (i64 i = 0; i < total_size; i += tmp.channel_count)
+    {
+        u8 alpha = data[i + 3];
+        if (alpha < 255)
+        {
+            has_transparency = true;
+            break;
+        }
+    }
+
+    if (stbi_failure_reason())
+    {
+        log_warning("Failed to load texture: %s. Reason: %s", path, stbi_failure_reason());
+        return false;
+    }
+
+    renderer_create_texture(
+        texture_name,
+        tmp.width, tmp.height,  
+        tmp.channel_count, 
+        data,
+        has_transparency,
+        true,
+        &tmp
+    );
+
+    Texture old = *out_texture;
+    *out_texture = tmp;
+
+    renderer_destroy_texture(&old);
+
+    if (generation == INVALID_ID)
+    {
+        out_texture->generation = 1;
+    }
+    else
+    {
+        out_texture->generation = generation + 1;
+    }
+
+    stbi_image_free(data);
+    return true;
+}
+
+// TODO: temporary
+bool event_on_debug(u16 code, void* sender, void* listener, EventContext context)
+{
+    const char* names[3] = {
+        "cobblestone",
+        "paving",
+        "paving2"
+    };
+    static i8 choice = 2;
+    choice = (choice + 1) % 3;
+
+    load_texture(names[choice], &renderer_state->test_diffuse);
+    return true;
+}
+// TODO: end temporary
 
 bool renderer_init(void* state, const char* app_name)
 {
     renderer_state = (RendererState*) state;
     renderer_state->backend = (RendererBackend*) memory_alloc(sizeof(RendererBackend), MEMORY_TAG_RENDERER);
+
+    // TODO: temporary
+    event_subscribe(EVENT_CODE_DEBUG0, renderer_state, event_on_debug);
+    // TODO: end temporary
+
+    renderer_state->backend->default_diffuse = &renderer_state->default_texture;
+
     renderer_backend_create(RENDERER_BACKEND_TYPE_VULKAN, renderer_state->backend);
     renderer_state->backend->frame_number = 0;
 
@@ -75,6 +192,9 @@ bool renderer_init(void* state, const char* app_name)
         &renderer_state->default_texture
     );
 
+    renderer_state->default_texture.generation = INVALID_ID;
+
+    create_texture(&renderer_state->test_diffuse);
     return true;
 }
 
@@ -86,7 +206,12 @@ void renderer_shutdown(void)
         return;
     }
 
+    // TODO: temporary
+    event_unsubscribe(EVENT_CODE_DEBUG0, renderer_state, event_on_debug);
+    // TODO: end temporary
+
     renderer_destroy_texture(&renderer_state->default_texture);
+    renderer_destroy_texture(&renderer_state->test_diffuse);
 
     renderer_state->backend->shutdown(renderer_state->backend);
     renderer_backend_destroy(renderer_state->backend);
@@ -120,7 +245,7 @@ bool renderer_draw_frame(RenderPacket* packet)
         GeometryRenderData data = { 0 };
         data.object_id = 1;
         data.model = model;
-        data.textures[0] = &renderer_state->default_texture;
+        data.textures[0] = &renderer_state->test_diffuse;
         renderer_state->backend->update_model(data);
 
         bool result = renderer_end_frame(packet->delta_time);

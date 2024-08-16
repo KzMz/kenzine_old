@@ -65,6 +65,13 @@ typedef enum SystemEventCode {
      */
     EVENT_CODE_MOUSE_WHEEL = 0x07,
 
+    // Debug event codes.
+    EVENT_CODE_DEBUG0 = 0x10,
+    EVENT_CODE_DEBUG1 = 0x11,
+    EVENT_CODE_DEBUG2 = 0x12,
+    EVENT_CODE_DEBUG3 = 0x13,
+    EVENT_CODE_DEBUG4 = 0x14,
+
     // Resized/resolution changed from the OS.
     /* Context usage:
      * u16 width = data.data.u16[0];

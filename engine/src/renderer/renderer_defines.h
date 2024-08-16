@@ -54,6 +54,8 @@ typedef struct RendererBackend
 {
     u64 frame_number;
 
+    Texture* default_diffuse;
+
     RendererBackendInit init;
     RendererBackendShutdown shutdown;
 

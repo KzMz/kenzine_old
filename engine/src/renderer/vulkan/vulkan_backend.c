@@ -183,7 +183,7 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
 
     create_sync_objects(backend);
 
-    if (!vulkan_obj_shader_create(&context, &context.obj_shader))
+    if (!vulkan_obj_shader_create(&context, backend->default_diffuse, &context.obj_shader))
     {
         log_fatal("Failed to create object shader.");
         return false;
@@ -415,7 +415,7 @@ void vulkan_renderer_update_global_uniform(Mat4 projection, Mat4 view, Vec3 view
 
 void vulkan_renderer_update_model(GeometryRenderData data)
 {
-    vulkan_obj_shader_update_model(&context, &context.obj_shader, data);
+    vulkan_obj_shader_update_object(&context, &context.obj_shader, data);
 
     VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
     // TODO: test code
@@ -527,13 +527,15 @@ void vulkan_renderer_destroy_texture(Texture* texture)
     vkDeviceWaitIdle(context.device.logical_device);
 
     VulkanTexture* vtexture = (VulkanTexture*) texture->data;
+    if (vtexture != NULL)
+    {
+        vulkan_image_destroy(&context, &vtexture->image);
+        memory_zero(&vtexture->image, sizeof(VulkanImage));
+        vkDestroySampler(context.device.logical_device, vtexture->sampler, context.allocator);
+        vtexture->sampler = VK_NULL_HANDLE;
 
-    vulkan_image_destroy(&context, &vtexture->image);
-    memory_zero(&vtexture->image, sizeof(VulkanImage));
-    vkDestroySampler(context.device.logical_device, vtexture->sampler, context.allocator);
-    vtexture->sampler = VK_NULL_HANDLE;
-
-    memory_free(texture->data, sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
+        memory_free(texture->data, sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
+    }
     memory_zero(texture, sizeof(Texture));
 }
 
