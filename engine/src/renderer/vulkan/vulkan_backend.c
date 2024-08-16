@@ -19,7 +19,7 @@
 #include "vulkan_buffer.h"
 #include "vulkan_image.h"
 
-#include "shaders/vulkan_obj_shader.h"
+#include "shaders/vulkan_material_shader.h"
 
 #define MIN_FRAMEBUFFER_WIDTH 800
 #define MIN_FRAMEBUFFER_HEIGHT 600
@@ -183,7 +183,7 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
 
     create_sync_objects(backend);
 
-    if (!vulkan_obj_shader_create(&context, backend->default_diffuse, &context.obj_shader))
+    if (!vulkan_material_shader_create(&context, backend->default_diffuse, &context.material_shader))
     {
         log_fatal("Failed to create object shader.");
         return false;
@@ -225,7 +225,7 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
         VK_NULL_HANDLE, context.device.graphics_queue, &context.obj_index_buffer, 0, sizeof(u32) * index_count, indices);
 
     u64 obj_id = INVALID_ID;
-    if (!vulkan_obj_shader_acquire_resources(&context, &context.obj_shader, &obj_id))
+    if (!vulkan_material_shader_acquire_resources(&context, &context.material_shader, &obj_id))
     {
         log_error("Failed to acquire resources for object shader.");
         return false;
@@ -245,7 +245,7 @@ void vulkan_renderer_backend_shutdown(RendererBackend* backend)
 
     destroy_buffers(&context);
 
-    vulkan_obj_shader_destroy(&context, &context.obj_shader);
+    vulkan_material_shader_destroy(&context, &context.material_shader);
 
     destroy_sync_objects(backend);
 
@@ -405,21 +405,21 @@ bool vulkan_renderer_backend_end_frame(RendererBackend* backend, f64 delta_time)
 void vulkan_renderer_update_global_uniform(Mat4 projection, Mat4 view, Vec3 view_positioni, Vec4 ambient_color, i32 mode)
 {
     VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
-    vulkan_obj_shader_use(&context, &context.obj_shader);
+    vulkan_material_shader_use(&context, &context.material_shader);
 
-    context.obj_shader.global_uniform.projection = projection;
-    context.obj_shader.global_uniform.view = view;
+    context.material_shader.global_uniform.projection = projection;
+    context.material_shader.global_uniform.view = view;
 
-    vulkan_obj_shader_update_global_uniform(&context, &context.obj_shader, context.frame_delta_time);
+    vulkan_material_shader_update_global_uniform(&context, &context.material_shader, context.frame_delta_time);
 }
 
 void vulkan_renderer_update_model(GeometryRenderData data)
 {
-    vulkan_obj_shader_update_object(&context, &context.obj_shader, data);
+    vulkan_material_shader_update_object(&context, &context.material_shader, data);
 
     VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
     // TODO: test code
-    vulkan_obj_shader_use(&context, &context.obj_shader);
+    vulkan_material_shader_use(&context, &context.material_shader);
 
     VkDeviceSize offsets[1] = {0};
     vkCmdBindVertexBuffers(command_buffer->command_buffer, 0, 1, &context.obj_vertex_buffer.buffer, offsets);

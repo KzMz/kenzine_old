@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdarg.h>
 
 // Unsigned integer types
 typedef unsigned char u8;
@@ -99,3 +100,8 @@ if defined(__ANDROID__)
 
 #define INVALID_ID 0
 #define MAX_ID 0xFFFFFFFF
+
+#define is_same_type(a, b) (__builtin_types_compatible_p(__typeof__(a), __typeof__(b)))
+#define is_pointer_or_array(p) (__builtin_classify_type(p) == 5)
+#define decay(p) (&*__builtin_choose_expr(is_pointer_or_array(p), p, NULL))
+#define is_pointer(p) is_same_type(p, decay(p))

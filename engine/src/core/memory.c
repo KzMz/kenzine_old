@@ -14,6 +14,7 @@ static const char* memory_strings[MEMORY_TAG_COUNT] =
     "STRING\t\t",
     "APP\t\t",
     "TEXTURE\t\t",
+    "HASHTABLE\t",
     "CUSTOM\t\t",
 };
 

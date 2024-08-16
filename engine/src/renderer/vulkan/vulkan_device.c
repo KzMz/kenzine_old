@@ -177,7 +177,13 @@ bool select_physical_device(VulkanContext* context)
     requirements.present = true;
     requirements.transfer = true;
     requirements.sampler_anisotropy = true;
+
+#if KZ_PLATFORM_APPLE
+    requirements.discrete_gpu = false;
+#else
     requirements.discrete_gpu = true;
+#endif
+
     requirements.device_extension_names = dynarray_create(const char*);
     dynarray_push(requirements.device_extension_names, &VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
@@ -191,6 +197,19 @@ bool select_physical_device(VulkanContext* context)
 
         VkPhysicalDeviceMemoryProperties memory;
         vkGetPhysicalDeviceMemoryProperties(physical_devices[i], &memory);
+
+        bool supports_device_local_host_visible = false;
+        for (u32 j = 0; j < memory.memoryHeapCount; ++j)
+        {
+            if (
+                (memory.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0 &&
+                (memory.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0
+            )
+            {
+                supports_device_local_host_visible = true;
+                break;
+            }
+        }
 
         VulkanPhysicalDeviceQueueFamilyInfo queue_info = {0};
         bool result = physical_device_meets_requirements(
@@ -238,6 +257,7 @@ bool select_physical_device(VulkanContext* context)
             context->device.properties = properties;
             context->device.features = features;
             context->device.memory = memory;
+            context->device.supports_device_local_host_visible = supports_device_local_host_visible;
             break;
         }
     }

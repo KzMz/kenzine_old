@@ -18,7 +18,7 @@
     }
 
 #define expect_eq_f(expected, actual)                                                                                     \
-    if (!math_abs(expected, actual) > 0.001f)                                                                             \
+    if (math_abs(expected - actual) > 0.001f)                                                                             \
     {                                                                                                                     \
         log_error("--> Expected %f, got %f. File: %s:%d", expected, actual, __FILE__, __LINE__);                          \
         return false;                                                                                                     \

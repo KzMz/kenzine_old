@@ -1,4 +1,4 @@
-#include "vulkan_obj_shader.h"
+#include "vulkan_material_shader.h"
 #include "core/log.h"
 #include "core/memory.h"
 #include "renderer/vulkan/vulkan_shader_utils.h"
@@ -7,9 +7,9 @@
 #include "../vulkan_pipeline.h"
 #include "../vulkan_buffer.h"   
 
-#define BUILTIN_SHADER_NAME_OBJECT "Builtin.ObjectShader"
+#define BUILTIN_SHADER_NAME_MATERIAL "Builtin.MaterialShader"
 
-bool vulkan_obj_shader_create(VulkanContext* context, Texture* default_diffuse, VulkanObjShader* out_shader)
+bool vulkan_material_shader_create(VulkanContext* context, Texture* default_diffuse, VulkanMaterialShader* out_shader)
 {
     out_shader->default_diffuse = default_diffuse;
 
@@ -24,7 +24,7 @@ bool vulkan_obj_shader_create(VulkanContext* context, Texture* default_diffuse, 
 
     for (u32 i = 0; i < OBJECT_SHADER_STAGE_COUNT; i++)
     {
-        if (!create_shader_module(context, BUILTIN_SHADER_NAME_OBJECT, stage_type_str[i], stage_flags[i], i, out_shader->stages))
+        if (!create_shader_module(context, BUILTIN_SHADER_NAME_MATERIAL, stage_type_str[i], stage_flags[i], i, out_shader->stages))
         {
             log_error("Failed to create shader module for object shader");
             return false;
@@ -155,11 +155,12 @@ bool vulkan_obj_shader_create(VulkanContext* context, Texture* default_diffuse, 
         return false;
     }
 
+    u32 device_local_bits = context->device.supports_device_local_host_visible ? VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT : 0;
     if (!vulkan_buffer_create(
         context,
         sizeof(GlobalUniform),
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | device_local_bits,
         true,
         &out_shader->global_uniform_buffer
     ))
@@ -185,7 +186,7 @@ bool vulkan_obj_shader_create(VulkanContext* context, Texture* default_diffuse, 
         context,
         sizeof(LocalUniform),
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         true,
         &out_shader->local_uniform_buffer
     ))
@@ -198,7 +199,7 @@ bool vulkan_obj_shader_create(VulkanContext* context, Texture* default_diffuse, 
     return true;
 }
 
-void vulkan_obj_shader_destroy(VulkanContext* context, VulkanObjShader* shader)
+void vulkan_material_shader_destroy(VulkanContext* context, VulkanMaterialShader* shader)
 {
     VkDevice device = context->device.logical_device;
 
@@ -219,13 +220,13 @@ void vulkan_obj_shader_destroy(VulkanContext* context, VulkanObjShader* shader)
     }
 }
 
-void vulkan_obj_shader_use(VulkanContext* context, VulkanObjShader* shader)
+void vulkan_material_shader_use(VulkanContext* context, VulkanMaterialShader* shader)
 {
     u32 image_index = context->image_index;
     vulkan_pipeline_bind(&context->graphics_command_buffers[image_index], VK_PIPELINE_BIND_POINT_GRAPHICS, &shader->pipeline);
 }
 
-void vulkan_obj_shader_update_global_uniform(VulkanContext* context, VulkanObjShader* shader, f32 delta_time)
+void vulkan_material_shader_update_global_uniform(VulkanContext* context, VulkanMaterialShader* shader, f32 delta_time)
 {
     u32 image_index = context->image_index;
     VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].command_buffer;
@@ -270,7 +271,7 @@ void vulkan_obj_shader_update_global_uniform(VulkanContext* context, VulkanObjSh
     );
 }
 
-void vulkan_obj_shader_update_object(VulkanContext* context, VulkanObjShader* shader, GeometryRenderData render_data)
+void vulkan_material_shader_update_object(VulkanContext* context, VulkanMaterialShader* shader, GeometryRenderData render_data)
 {
     u32 image_index = context->image_index;
     VkCommandBuffer command_buffer = context->graphics_command_buffers[image_index].command_buffer;
@@ -388,7 +389,7 @@ void vulkan_obj_shader_update_object(VulkanContext* context, VulkanObjShader* sh
     );
 }
 
-bool vulkan_obj_shader_acquire_resources(VulkanContext* context, VulkanObjShader* shader, u64* out_id)
+bool vulkan_material_shader_acquire_resources(VulkanContext* context, VulkanMaterialShader* shader, u64* out_id)
 {
     *out_id = shader->local_uniform_buffer_index;
     shader->local_uniform_buffer_index++;
@@ -424,7 +425,7 @@ bool vulkan_obj_shader_acquire_resources(VulkanContext* context, VulkanObjShader
     return true;
 }
 
-void vulkan_obj_shader_release_resources(VulkanContext* context, VulkanObjShader* shader, u64 id)
+void vulkan_material_shader_release_resources(VulkanContext* context, VulkanMaterialShader* shader, u64 id)
 {
     VulkanObjShaderState* state = &shader->object_states[id - 1];
 

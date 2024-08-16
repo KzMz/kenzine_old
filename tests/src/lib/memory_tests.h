@@ -2,4 +2,4 @@
 
 #include <defines.h>
 
-void register_arena_tests(void);
+void arena_register_tests(void);

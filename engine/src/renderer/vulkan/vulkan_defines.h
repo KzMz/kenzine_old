@@ -55,6 +55,8 @@ typedef struct VulkanDevice
     VkPhysicalDeviceMemoryProperties memory;
 
     VkFormat depth_format;
+
+    bool supports_device_local_host_visible;
 } VulkanDevice;
 
 typedef struct VulkanImage 
@@ -160,7 +162,7 @@ typedef struct VulkanObjShaderState
     VulkanDescriptorState descriptor_states[OBJECT_SHADER_DESCRIPTOR_COUNT];
 } VulkanObjShaderState;
 
-typedef struct VulkanObjShader
+typedef struct VulkanMaterialShader
 {
     VulkanShaderStage stages[OBJECT_SHADER_STAGE_COUNT];
     VulkanPipeline pipeline;
@@ -181,7 +183,7 @@ typedef struct VulkanObjShader
     VulkanObjShaderState object_states[MAX_OBJECT_COUNT];
 
     Texture* default_diffuse;
-} VulkanObjShader;
+} VulkanMaterialShader;
 
 typedef i32 (*VulkanFindMemoryIndex)(u32 type_filter, u32 property_flags);
 
@@ -223,7 +225,7 @@ typedef struct VulkanContext
     VulkanFence* in_flight_fences;
     VulkanFence** images_in_flight;
 
-    VulkanObjShader obj_shader;
+    VulkanMaterialShader material_shader;
 
     u64 geometry_vertex_offset;
     u64 geometry_index_offset;

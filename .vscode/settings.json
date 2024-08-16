@@ -32,6 +32,7 @@
         "renderer_defines.h": "c",
         "renderer_frontend.h": "c",
         "mat4.h": "c",
-        "renderer_backend.h": "c"
+        "renderer_backend.h": "c",
+        "vulkan_pipeline.h": "c"
     }
 }

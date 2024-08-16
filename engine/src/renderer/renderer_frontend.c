@@ -119,13 +119,14 @@ bool load_texture(const char* texture_name, Texture* out_texture)
 // TODO: temporary
 bool event_on_debug(u16 code, void* sender, void* listener, EventContext context)
 {
-    const char* names[3] = {
+    const char* names[4] = {
         "cobblestone",
+        "dadobax",
         "paving",
         "paving2"
     };
     static i8 choice = 2;
-    choice = (choice + 1) % 3;
+    choice = (choice + 1) % 4;
 
     load_texture(names[choice], &renderer_state->test_diffuse);
     return true;

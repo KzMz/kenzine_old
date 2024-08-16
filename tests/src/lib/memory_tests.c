@@ -43,7 +43,7 @@ bool test_arena_over_default(void)
     return true;
 }
 
-void register_arena_tests(void)
+void arena_register_tests(void)
 {
     test_register(test_arena_alloc_clear, "arena_alloc_clear");
     test_register(test_arena_over_default, "arena_over_default");

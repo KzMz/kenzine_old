@@ -5,6 +5,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#ifndef _MSC_VER
+#include <strings.h>
+#endif
+
 u64 string_length(const char* str)
 {
     return strlen(str);
@@ -21,6 +25,15 @@ char* string_clone(const char* str)
 bool string_equals(const char* str1, const char* str2)
 {
     return strcmp(str1, str2) == 0;
+}
+
+bool string_equals_nocase(const char* str1, const char* str2)
+{
+#if defined(__GNUC__)
+    return strcasecmp(str1, str2) == 0;
+#elif defined(_MSC_VER)
+    return _strcmpi(str1, str2) == 0;
+#endif
 }
 
 i32 string_format(char* dest, const char* format, ...)
