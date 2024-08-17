@@ -12,6 +12,7 @@
 #define MAX_MATERIAL_COUNT 1024
 #define MATERIAL_SHADER_DESCRIPTOR_COUNT 2
 #define MATERIAL_SHADER_SAMPLER_COUNT 1
+#define MAX_GEOMETRY_COUNT 4096
 
 #define VK_ASSERT(expr) do { kz_assert((expr) == VK_SUCCESS); } while(0)
 
@@ -164,6 +165,20 @@ typedef struct VulkanMaterialShaderInstanceState
     VulkanDescriptorState descriptor_states[MATERIAL_SHADER_DESCRIPTOR_COUNT];
 } VulkanMaterialShaderInstanceState;
 
+typedef struct VulkanGeometryData
+{
+    u64 id;
+    u32 generation;
+    
+    u64 vertex_count;
+    u32 vertex_size;
+    u64 vertex_buffer_offset;
+
+    u64 index_count;
+    u32 index_size;
+    u64 index_buffer_offset;
+} VulkanGeometryData;
+
 typedef struct VulkanMaterialShader
 {
     VulkanShaderStage stages[MATERIAL_SHADER_STAGE_COUNT];
@@ -231,6 +246,8 @@ typedef struct VulkanContext
 
     u64 geometry_vertex_offset;
     u64 geometry_index_offset;
+
+    VulkanGeometryData geometries[MAX_GEOMETRY_COUNT];
 } VulkanContext;
 
 typedef struct VulkanTexture

@@ -14,3 +14,4 @@ KENZINE_API char* string_copy(char* dest, const char* src);
 KENZINE_API char* string_copy_n(char* dest, const char* src, u64 n);
 KENZINE_API char* string_trim(char* str);
 KENZINE_API void string_mid(char* dest, const char* src, u64 start, u64 count);
+KENZINE_API char* string_empty(char* str);

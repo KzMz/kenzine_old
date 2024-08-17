@@ -133,3 +133,14 @@ void string_mid(char* dest, const char* src, u64 start, u64 count)
         dest[start + j] = 0;
     }
 }
+
+char* string_empty(char* str)
+{
+    if (str == NULL)
+    {
+        return NULL;
+    }
+
+    str[0] = 0;
+    return str;
+}

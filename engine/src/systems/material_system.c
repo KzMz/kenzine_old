@@ -48,7 +48,7 @@ bool material_system_init(void* state, MaterialSystemConfig config)
 
     material_system_state = (MaterialSystemState*) state;
     material_system_state->config = config;
-    material_system_state->materials = dynarray_reserve(Material, config.max_materials);
+    material_system_state->materials = state + sizeof(MaterialSystemState);
     hashtable_create(MaterialReference, config.max_materials, false, &material_system_state->material_table);
 
     MaterialReference invalid_ref;
@@ -90,22 +90,23 @@ void material_system_shutdown(void)
 
     destroy_material(&material_system_state->default_material);
 
-    dynarray_destroy(material_system_state->materials);
+    memory_zero(material_system_state->materials, sizeof(Material) * material_system_state->config.max_materials);
+
     hashtable_destroy(&material_system_state->material_table);
     memory_zero(material_system_state, sizeof(MaterialSystemState));
     material_system_state = NULL;
 }
 
-u64 material_system_get_state_size(void)
+u64 material_system_get_state_size(MaterialSystemConfig config)
 {
-    return sizeof(MaterialSystemState);
+    return sizeof(MaterialSystemState) + (sizeof(Material) * config.max_materials);
 }
 
 Material* material_system_acquire(const char* name)
 {
     MaterialConfig config;
     
-    char* format_str = "../assets/materials/%s.%s";
+    char* format_str = "assets/materials/%s.%s";
     char full_file_path[512];
 
     string_format(full_file_path, format_str, name, "mat");
@@ -206,6 +207,17 @@ void material_system_release(const char* name)
     }
 
     hashtable_set(&material_system_state->material_table, name, &ref);
+}
+
+Material* material_system_get_default(void)
+{
+    if (material_system_state == NULL)
+    {
+        log_error("Material system is not initialized.");
+        return NULL;
+    }
+
+    return &material_system_state->default_material;
 }
 
 bool load_material(MaterialConfig config, Material* out_material)

@@ -5,11 +5,16 @@
 #include "core/event.h"
 #include "core/input/input.h"
 #include "core/clock.h"
+#include "lib/string.h"
 
 #include "renderer/renderer_frontend.h"
 
 #include "systems/texture_system.h"
 #include "systems/material_system.h"
+#include "systems/geometry_system.h"
+
+#include "lib/math/math_defines.h"
+#include "lib/math/mat4.h"
 
 typedef struct AppState
 {
@@ -41,6 +46,11 @@ typedef struct AppState
 
     void* material_system_state;
     u64 material_system_state_size;
+
+    void* geometry_system_state;
+    u64 geometry_system_state_size;
+
+    Geometry* test_geometry;
 } AppState;
 
 static AppState* app_state = 0;
@@ -48,6 +58,8 @@ static AppState* app_state = 0;
 bool app_on_event(u16 code, void* sender, void* listener, EventContext context);
 bool app_on_key(u16 code, void* sender, void* listener, EventContext context);
 bool app_on_resize(u16 code, void* sender, void* listener, EventContext context);
+
+bool event_on_debug(u16 code, void* sender, void* listener, EventContext context);
 
 KENZINE_API bool app_init(Game* game)
 {
@@ -91,6 +103,8 @@ KENZINE_API bool app_init(Game* game)
     event_subscribe(EVENT_CODE_KEY_RELEASED, 0, app_on_key);    
     event_subscribe(EVENT_CODE_RESIZED, 0, app_on_resize);
 
+    event_subscribe(EVENT_CODE_DEBUG0, 0, event_on_debug);
+
     // Platform subsystem
     app_state->platform_state_size = platform_get_state_size();
     void* platform_state = memory_alloc(app_state->platform_state_size, MEMORY_TAG_APP);
@@ -120,7 +134,7 @@ KENZINE_API bool app_init(Game* game)
     // Texture system
     TextureSystemConfig texture_config = {0};
     texture_config.max_textures = 65536;
-    void* texture_system_state = memory_alloc(texture_system_get_state_size(), MEMORY_TAG_APP);
+    void* texture_system_state = memory_alloc(texture_system_get_state_size(texture_config), MEMORY_TAG_TEXTURESYSTEM);
     app_state->texture_system_state = texture_system_state;
     if (!texture_system_init(texture_system_state, texture_config))
     {
@@ -131,13 +145,30 @@ KENZINE_API bool app_init(Game* game)
     // Material system
     MaterialSystemConfig material_config = {0};
     material_config.max_materials = 4096;
-    void* material_system_state = memory_alloc(material_system_get_state_size(), MEMORY_TAG_APP);
+    void* material_system_state = memory_alloc(material_system_get_state_size(material_config), MEMORY_TAG_MATERIALSYSTEM);
     app_state->material_system_state = material_system_state;
     if (!material_system_init(material_system_state, material_config))
     {
         log_fatal("Failed to initialize material system");
         return false;
     }
+
+    // Geometry system
+    GeometrySystemConfig geometry_config = {0};
+    geometry_config.max_geometries = 4096;
+    void* geometry_system_state = memory_alloc(geometry_system_get_state_size(geometry_config), MEMORY_TAG_GEOMETRYSYSTEM);
+    app_state->geometry_system_state = geometry_system_state;
+    if (!geometry_system_init(geometry_system_state, geometry_config))
+    {
+        log_fatal("Failed to initialize geometry system");
+        return false;
+    }
+
+    GeometryConfig plane_config = geometry_system_generate_plane_config(10.0f, 10.0f, 5, 5, 2.0f, 2.0f, "test geometry", "test_material");
+    app_state->test_geometry = geometry_system_acquire_from_config(plane_config, true);
+
+    memory_free(plane_config.vertices, sizeof(Vertex3d) * plane_config.vertex_count, MEMORY_TAG_APP);
+    memory_free(plane_config.indices, sizeof(u32) * plane_config.index_count, MEMORY_TAG_APP);
 
     if (!app_state->game->init(app_state->game)) {
         log_fatal("Failed to initialize game");
@@ -167,8 +198,6 @@ KENZINE_API bool app_run(void)
         return false;
     }
 
-    RenderPacket packet = {0};
-
     while(app_state->running)
     {
         if(!platform_handle_messages())
@@ -197,7 +226,16 @@ KENZINE_API bool app_run(void)
                 break;
             }
 
+            RenderPacket packet = {0};
             packet.delta_time = delta_time;
+            
+            GeometryRenderData render_data = {0};
+            render_data.geometry = app_state->test_geometry;
+            render_data.model = mat4_identity();
+
+            packet.geometries = &render_data;
+            packet.geometry_count = 1;
+
             renderer_draw_frame(&packet);
 
             f64 frame_end_time = platform_get_absolute_time();
@@ -243,6 +281,9 @@ KENZINE_API void app_shutdown(void)
     event_unsubscribe(EVENT_CODE_KEY_PRESSED, 0, app_on_key);
     event_unsubscribe(EVENT_CODE_KEY_RELEASED, 0, app_on_key);
 
+    event_unsubscribe(EVENT_CODE_DEBUG0, 0, event_on_debug);
+
+    geometry_system_shutdown();
     material_system_shutdown();
     texture_system_shutdown();
 
@@ -328,4 +369,9 @@ bool app_on_resize(u16 code, void* sender, void* listener, EventContext context)
     }
 
     return false;
+}
+
+bool event_on_debug(u16 code, void* sender, void* listener, EventContext context)
+{
+    return true;
 }

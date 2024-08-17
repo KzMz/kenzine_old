@@ -50,10 +50,11 @@ bool texture_system_init(void* state, TextureSystemConfig config)
         return false;
     }
 
-    // NOTE: see if is it worth to have all this memory near one another
     texture_system_state = (TextureSystemState*) state;
     texture_system_state->config = config;
-    texture_system_state->textures = dynarray_reserve(Texture, config.max_textures);
+    texture_system_state->textures = state + sizeof(TextureSystemState);
+
+    // See if this needs to be near the other memory
     hashtable_create(TextureReference, config.max_textures, false, &texture_system_state->texture_table);
 
     TextureReference invalid_ref;
@@ -87,7 +88,8 @@ void texture_system_shutdown(void)
 
     destroy_default_texture(texture_system_state);
 
-    dynarray_destroy(texture_system_state->textures);
+    memory_zero(texture_system_state->textures, sizeof(Texture) * texture_system_state->config.max_textures);
+
     hashtable_destroy(&texture_system_state->texture_table);
     memory_zero(texture_system_state, sizeof(TextureSystemState));
     texture_system_state = NULL;
@@ -175,9 +177,9 @@ void texture_system_release(const char* name)
     hashtable_set(&texture_system_state->texture_table, name_copy, &ref);
 }
 
-u64 texture_system_get_state_size(void)
+u64 texture_system_get_state_size(TextureSystemConfig config)
 {
-    return sizeof(TextureSystemState);
+    return sizeof(TextureSystemState) + sizeof(Texture) * config.max_textures;
 }
 
 Texture* texture_system_get_default(void)
@@ -237,7 +239,7 @@ void destroy_default_texture(TextureSystemState* state)
 
 bool load_texture(const char* texture_name, Texture* out_texture)
 {
-    char* format_str = "../assets/textures/%s.%s";
+    char* format_str = "assets/textures/%s.%s";
     const i32 required_channel_count = 4;
     stbi_set_flip_vertically_on_load(true);
     

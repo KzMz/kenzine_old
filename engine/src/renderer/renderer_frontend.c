@@ -23,47 +23,14 @@ typedef struct RendererState
     Mat4 view;
     f32 near_clip;
     f32 far_clip;
-
-    // TODO: temporary
-    Material* test_material;
-    // TODO: end temporary
 } RendererState;
 
 static RendererState* renderer_state = 0;
-
-// TODO: temporary
-bool event_on_debug(u16 code, void* sender, void* listener, EventContext context)
-{
-    const char* names[4] = {
-        "cobblestone",
-        "dadobax",
-        "paving",
-        "paving2"
-    };
-    static i8 choice = 2;
-    const char* old_name = names[choice];
-    choice = (choice + 1) % 4;
-
-    renderer_state->test_material->diffuse_map.texture = texture_system_acquire(names[choice], true);
-    if (!renderer_state->test_material->diffuse_map.texture)
-    {
-        log_warning("Failed to acquire texture: %s", names[choice]);
-        renderer_state->test_material->diffuse_map.texture = texture_system_get_default();
-    }
-
-    texture_system_release(old_name);
-    return true;
-}
-// TODO: end temporary
 
 bool renderer_init(void* state, const char* app_name)
 {
     renderer_state = (RendererState*) state;
     renderer_state->backend = (RendererBackend*) memory_alloc(sizeof(RendererBackend), MEMORY_TAG_RENDERER);
-
-    // TODO: temporary
-    event_subscribe(EVENT_CODE_DEBUG0, renderer_state, event_on_debug);
-    // TODO: end temporary
 
     renderer_backend_create(RENDERER_BACKEND_TYPE_VULKAN, renderer_state->backend);
     renderer_state->backend->frame_number = 0;
@@ -91,11 +58,7 @@ void renderer_shutdown(void)
         log_warning("Renderer is not initialized. Nothing to shutdown.");
         return;
     }
-
-    // TODO: temporary
-    event_unsubscribe(EVENT_CODE_DEBUG0, renderer_state, event_on_debug);
-    // TODO: end temporary
-
+    
     renderer_state->backend->shutdown(renderer_state->backend);
     renderer_backend_destroy(renderer_state->backend);
     
@@ -120,30 +83,11 @@ bool renderer_draw_frame(RenderPacket* packet)
     {
         renderer_state->backend->update_global_uniform(renderer_state->projection, renderer_state->view, vec3_zero(), vec4_one(), 0);
 
-        static f32 angle = 0.01f;
-        angle += 0.001f;
-
-        Quat rotation = quat_from_axis_angle(vec3_forward(), angle, false);
-        Mat4 model = quat_to_rot_mat4(rotation, vec3_zero());
-        GeometryRenderData data = { 0 };
-        data.model = model;
-
-        if (!renderer_state->test_material)
+        u32 count = packet->geometry_count;
+        for (u32 i = 0; i < count; i++)
         {
-            renderer_state->test_material = material_system_acquire("test_material");
-            if (!renderer_state->test_material) 
-            {
-                MaterialConfig config = { 0 };
-                string_copy_n(config.name, "test_material", MATERIAL_NAME_MAX_LENGTH);
-                config.auto_release = false;
-                config.diffuse_color = vec4_one();
-                string_copy_n(config.diffuse_map_name, DEFAULT_TEXTURE_NAME, TEXTURE_NAME_MAX_LENGTH);
-                renderer_state->test_material = material_system_acquire_from_config(config);
-            }
+            renderer_state->backend->draw_geometry(packet->geometries[i]);
         }
-
-        data.material = renderer_state->test_material;
-        renderer_state->backend->update_model(data);
 
         bool result = renderer_end_frame(packet->delta_time);
         if (!result) 
@@ -204,4 +148,14 @@ bool renderer_create_material(struct Material* material)
 void renderer_destroy_material(struct Material* material)
 {
     renderer_state->backend->destroy_material(material);
+}
+
+bool renderer_create_geometry(struct Geometry* geometry, u32 vertex_count, const Vertex3d* vertices, u32 index_count, const u32* indices)
+{
+    return renderer_state->backend->create_geometry(geometry, vertex_count, vertices, index_count, indices);
+}
+
+void renderer_destroy_geometry(struct Geometry* geometry)
+{
+    renderer_state->backend->destroy_geometry(geometry);
 }

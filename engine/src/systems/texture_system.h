@@ -11,7 +11,7 @@ typedef struct TextureSystemConfig
 
 bool texture_system_init(void* state, TextureSystemConfig config);
 void texture_system_shutdown(void);
-u64 texture_system_get_state_size(void);
+u64 texture_system_get_state_size(TextureSystemConfig config);
 
 Texture* texture_system_acquire(const char* name, bool auto_release);
 void texture_system_release(const char* name);
