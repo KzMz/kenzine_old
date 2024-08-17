@@ -9,6 +9,7 @@
 #include "renderer/renderer_frontend.h"
 
 #include "systems/texture_system.h"
+#include "systems/material_system.h"
 
 typedef struct AppState
 {
@@ -37,6 +38,9 @@ typedef struct AppState
 
     void* texture_system_state;
     u64 texture_system_state_size;
+
+    void* material_system_state;
+    u64 material_system_state_size;
 } AppState;
 
 static AppState* app_state = 0;
@@ -121,6 +125,17 @@ KENZINE_API bool app_init(Game* game)
     if (!texture_system_init(texture_system_state, texture_config))
     {
         log_fatal("Failed to initialize texture system");
+        return false;
+    }
+
+    // Material system
+    MaterialSystemConfig material_config = {0};
+    material_config.max_materials = 4096;
+    void* material_system_state = memory_alloc(material_system_get_state_size(), MEMORY_TAG_APP);
+    app_state->material_system_state = material_system_state;
+    if (!material_system_init(material_system_state, material_config))
+    {
+        log_fatal("Failed to initialize material system");
         return false;
     }
 
@@ -228,6 +243,7 @@ KENZINE_API void app_shutdown(void)
     event_unsubscribe(EVENT_CODE_KEY_PRESSED, 0, app_on_key);
     event_unsubscribe(EVENT_CODE_KEY_RELEASED, 0, app_on_key);
 
+    material_system_shutdown();
     texture_system_shutdown();
 
     event_system_shutdown();

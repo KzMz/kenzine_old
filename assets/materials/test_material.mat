@@ -1,0 +1,13 @@
+{
+    "type": "material",
+    "version": 0.1,
+    "name": "test material",
+    "diffuse_color": 
+    {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 1.0
+    },
+    "diffuse_map_name": "dadobax"
+}

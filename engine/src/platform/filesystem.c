@@ -8,8 +8,13 @@
 
 bool file_exists(const char* path)
 {
+#ifdef _MSC_VER
+    struct _stat buffer;
+    return _stat(path, &buffer);
+#else
     struct stat buffer;
     return stat(path, &buffer) == 0;
+#endif
 }
 
 bool file_open(const char* path, FileMode mode, bool binary, FileHandle* out_handle)
@@ -58,7 +63,25 @@ void file_close(FileHandle* handle)
     }
 }
 
-bool file_read_line(FileHandle* handle, char** out_line)
+bool file_read_line(FileHandle* handle, u64 max_length, char** line_buf, u64* out_length)
+{
+    if (!handle->valid)
+    {
+        log_error("Invalid file handle");
+        return false;
+    }
+
+    char* buf = *line_buf;
+    if (fgets(buf, max_length, (FILE*) handle->handle) != 0)
+    {
+        *out_length = strlen(*line_buf);
+        return true;
+    }
+
+    return false;
+}
+
+bool file_get_contents(FileHandle* handle, char* out_contents, u64* out_size)
 {
     if (!handle->valid)
     {
@@ -67,16 +90,12 @@ bool file_read_line(FileHandle* handle, char** out_line)
     }
 
     FILE* file = (FILE*) handle->handle;
-    char buffer[32000];
-    if (fgets(buffer, sizeof(buffer), file) != 0)
-    {
-        u64 line_length = strlen(buffer);
-        *out_line = memory_alloc((sizeof(char) * line_length) + 1, MEMORY_TAG_STRING);
-        strcpy(*out_line, buffer);
-        return true;
-    }
+    fseek(file, 0, SEEK_END);
+    u64 size = ftell(file);
+    rewind(file);
 
-    return false;
+    *out_size = fread(out_contents, 1, size, file);
+    return *out_size == size;
 }
 
 bool file_write_line(FileHandle* handle, const char* line)

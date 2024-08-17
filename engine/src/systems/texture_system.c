@@ -40,6 +40,7 @@ void create_texture(Texture* t)
 bool create_default_texture(TextureSystemState* state);
 void destroy_default_texture(TextureSystemState* state);
 bool load_texture(const char* texture_name, Texture* out_texture);
+void destroy_texture(Texture* texture);
 
 bool texture_system_init(void* state, TextureSystemConfig config)
 {
@@ -158,20 +159,20 @@ void texture_system_release(const char* name)
         return;
     }
 
+    char name_copy[TEXTURE_NAME_MAX_LENGTH];
+    string_copy_n(name_copy, name, TEXTURE_NAME_MAX_LENGTH);
+
     ref.reference_count--;
     if (ref.reference_count == 0 && ref.auto_release)
     {
         Texture* t = &texture_system_state->textures[ref.handle];
-        renderer_destroy_texture(t);
+        destroy_texture(t);
 
-        memory_zero(t, sizeof(Texture));
-        t->id = INVALID_ID;
-        t->generation = INVALID_ID;
         ref.handle = INVALID_ID;
         ref.auto_release = false;
     }
 
-    hashtable_set(&texture_system_state->texture_table, name, &ref);
+    hashtable_set(&texture_system_state->texture_table, name_copy, &ref);
 }
 
 u64 texture_system_get_state_size(void)
@@ -215,14 +216,14 @@ bool create_default_texture(TextureSystemState* state)
         }
     }
 
-    renderer_create_texture(
-        DEFAULT_TEXTURE_NAME,
-        texture_size, texture_size,
-        bpp,
-        pixels,
-        false,
-        &state->default_texture
-    );
+    string_copy_n(state->default_texture.name, DEFAULT_TEXTURE_NAME, TEXTURE_NAME_MAX_LENGTH);
+    state->default_texture.width = texture_size;
+    state->default_texture.height = texture_size;
+    state->default_texture.channel_count = bpp;
+    state->default_texture.generation = INVALID_ID;
+    state->default_texture.has_transparency = false;
+
+    renderer_create_texture(pixels, &state->default_texture);
 
     state->default_texture.generation = INVALID_ID;
     return true;
@@ -231,7 +232,7 @@ bool create_default_texture(TextureSystemState* state)
 void destroy_default_texture(TextureSystemState* state)
 {
     if (state == NULL) return;
-    renderer_destroy_texture(&state->default_texture);
+    destroy_texture(&state->default_texture);
 }
 
 bool load_texture(const char* texture_name, Texture* out_texture)
@@ -258,6 +259,7 @@ bool load_texture(const char* texture_name, Texture* out_texture)
     if (data == NULL)
     {
         log_warning("Failed to load texture: %s. Reason: %s", path, stbi_failure_reason());
+        stbi__err(0, 0);
         return false;
     }
 
@@ -279,17 +281,15 @@ bool load_texture(const char* texture_name, Texture* out_texture)
     if (stbi_failure_reason())
     {
         log_warning("Failed to load texture: %s. Reason: %s", path, stbi_failure_reason());
+        stbi__err(0, 0);
         return false;
     }
 
-    renderer_create_texture(
-        texture_name,
-        tmp.width, tmp.height,  
-        tmp.channel_count, 
-        data,
-        has_transparency,
-        &tmp
-    );
+    string_copy_n(tmp.name, texture_name, TEXTURE_NAME_MAX_LENGTH);
+    tmp.generation = INVALID_ID;
+    tmp.has_transparency = has_transparency;
+
+    renderer_create_texture(data, &tmp);
 
     Texture old = *out_texture;
     *out_texture = tmp;
@@ -307,4 +307,22 @@ bool load_texture(const char* texture_name, Texture* out_texture)
 
     stbi_image_free(data);
     return true;
+}
+
+void destroy_texture(Texture* texture)
+{
+    if (texture == NULL) 
+    {
+        return;
+    }
+    if (texture->id == INVALID_ID)
+    {
+        return;
+    }
+
+    renderer_destroy_texture(texture);
+    memory_zero(texture->name, sizeof(char) * TEXTURE_NAME_MAX_LENGTH);
+    memory_zero(texture, sizeof(Texture));
+    texture->id = INVALID_ID;
+    texture->generation = INVALID_ID;
 }

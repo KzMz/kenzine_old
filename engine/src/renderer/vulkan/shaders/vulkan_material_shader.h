@@ -10,5 +10,5 @@ void vulkan_material_shader_use(VulkanContext* context, VulkanMaterialShader* sh
 void vulkan_material_shader_update_global_uniform(VulkanContext* context, VulkanMaterialShader* shader, f32 delta_time);
 void vulkan_material_shader_update_object(VulkanContext* context, VulkanMaterialShader* shader, GeometryRenderData render_data);
 
-bool vulkan_material_shader_acquire_resources(VulkanContext* context, VulkanMaterialShader* shader, u64* out_id);
-void vulkan_material_shader_release_resources(VulkanContext* context, VulkanMaterialShader* shader, u64 id);
+bool vulkan_material_shader_acquire_resources(VulkanContext* context, VulkanMaterialShader* shader, Material* material);
+void vulkan_material_shader_release_resources(VulkanContext* context, VulkanMaterialShader* shader, Material* material);

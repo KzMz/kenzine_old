@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #ifndef _MSC_VER
 #include <strings.h>
@@ -63,4 +64,72 @@ i32 string_format_v(char* dest, const char* format, void* args)
     memory_copy(dest, buffer, result + 1);
 
     return result;
+}
+
+char* string_copy(char* dest, const char* src)
+{
+    return strcpy(dest, src);
+}
+
+char* string_copy_n(char* dest, const char* src, u64 n)
+{
+    return strncpy(dest, src, n);
+}
+
+char* string_trim(char* str)
+{
+    while (isspace((unsigned char) *str))
+    {
+        str++;
+    }
+
+    if (*str == 0)
+    {
+        return str;
+    }
+
+    char* p = str;
+    while (*p != 0)
+    {
+        p++;
+    }
+
+    while (isspace((unsigned char)*(--p)));
+
+    p[1] = '\0';
+
+    return str;
+}
+
+void string_mid(char* dest, const char* src, u64 start, u64 count)
+{
+    if (count == 0)
+    {
+        return;
+    }
+
+    u64 length = string_length(src);
+    if (start >= length)
+    {
+        dest[0] = 0;
+        return;
+    }
+
+    if (count > 0)
+    {
+        for (u64 i = start, j = 0; j < length && src[i] != 0; ++i, ++j)
+        {
+            dest[j] = src[i];
+        }
+        dest[start + count] = 0;
+    }
+    else 
+    {
+        u64 j = 0;
+        for (u64 i = start; src[i] != 0; ++i, ++j)
+        {
+            dest[j] = src[i];
+        }
+        dest[start + j] = 0;
+    }
 }

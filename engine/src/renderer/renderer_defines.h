@@ -20,21 +20,18 @@ typedef struct GlobalUniform
     Mat4 reserved1;
 } GlobalUniform;
 
-typedef struct LocalUniform
+typedef struct MaterialUniform
 {
     Vec4 diffuse_color;
     Vec4 reserved0;
     Vec4 reserved1;
     Vec4 reserved2;
-} LocalUniform;
-
-#define MAX_TEXTURES 16
+} MaterialUniform;
 
 typedef struct GeometryRenderData
 {
-    u64 object_id;
     Mat4 model;
-    Texture* textures[MAX_TEXTURES];
+    Material* material;
 } GeometryRenderData;
 
 struct RendererBackend;
@@ -47,8 +44,10 @@ typedef bool (*RendererBackendBeginFrame)(struct RendererBackend* backend, f64 d
 typedef bool (*RendererBackendEndFrame)(struct RendererBackend* backend, f64 delta_time);
 typedef void (*RendererBackendUpdateGlobalUniform)(Mat4 proj, Mat4 view, Vec3 view_position, Vec4 ambient_color, i32 mode);
 typedef void (*RendererBackendUpdateModel)(GeometryRenderData data);
-typedef void (*RendererBackendCreateTexture)(const char* name, i32 width, i32 height, u8 channel_count, const u8* pixels, bool has_transparency, Texture* out_texture);
+typedef void (*RendererBackendCreateTexture)(const u8* pixels, Texture* texture);
 typedef void (*RendererBackendDestroyTexture)(Texture* texture);
+typedef bool (*RendererBackendCreateMaterial)(Material* material);
+typedef void (*RendererBackendDestroyMaterial)(Material* material);
 
 typedef struct RendererBackend 
 {
@@ -67,6 +66,9 @@ typedef struct RendererBackend
 
     RendererBackendCreateTexture create_texture;
     RendererBackendDestroyTexture destroy_texture;
+
+    RendererBackendCreateMaterial create_material;
+    RendererBackendDestroyMaterial destroy_material;
 } RendererBackend;
 
 typedef struct RenderPacket 

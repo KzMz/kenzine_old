@@ -9,6 +9,7 @@
 #include "lib/math/quat.h"
 #include "resources/resource_defines.h"
 #include "systems/texture_system.h"
+#include "systems/material_system.h"
 
 // TODO: temporary
 #include "lib/string.h"
@@ -24,7 +25,7 @@ typedef struct RendererState
     f32 far_clip;
 
     // TODO: temporary
-    Texture* test_diffuse;
+    Material* test_material;
     // TODO: end temporary
 } RendererState;
 
@@ -43,7 +44,13 @@ bool event_on_debug(u16 code, void* sender, void* listener, EventContext context
     const char* old_name = names[choice];
     choice = (choice + 1) % 4;
 
-    renderer_state->test_diffuse = texture_system_acquire(names[choice], true);
+    renderer_state->test_material->diffuse_map.texture = texture_system_acquire(names[choice], true);
+    if (!renderer_state->test_material->diffuse_map.texture)
+    {
+        log_warning("Failed to acquire texture: %s", names[choice]);
+        renderer_state->test_material->diffuse_map.texture = texture_system_get_default();
+    }
+
     texture_system_release(old_name);
     return true;
 }
@@ -119,15 +126,23 @@ bool renderer_draw_frame(RenderPacket* packet)
         Quat rotation = quat_from_axis_angle(vec3_forward(), angle, false);
         Mat4 model = quat_to_rot_mat4(rotation, vec3_zero());
         GeometryRenderData data = { 0 };
-        data.object_id = 0;
         data.model = model;
 
-        if (!renderer_state->test_diffuse)
+        if (!renderer_state->test_material)
         {
-            renderer_state->test_diffuse = texture_system_get_default();
+            renderer_state->test_material = material_system_acquire("test_material");
+            if (!renderer_state->test_material) 
+            {
+                MaterialConfig config = { 0 };
+                string_copy_n(config.name, "test_material", MATERIAL_NAME_MAX_LENGTH);
+                config.auto_release = false;
+                config.diffuse_color = vec4_one();
+                string_copy_n(config.diffuse_map_name, DEFAULT_TEXTURE_NAME, TEXTURE_NAME_MAX_LENGTH);
+                renderer_state->test_material = material_system_acquire_from_config(config);
+            }
         }
 
-        data.textures[0] = renderer_state->test_diffuse;
+        data.material = renderer_state->test_material;
         renderer_state->backend->update_model(data);
 
         bool result = renderer_end_frame(packet->delta_time);
@@ -171,17 +186,22 @@ void renderer_set_view(Mat4 view)
     renderer_state->view = view;
 }
 
-void renderer_create_texture(
-    const char* name, 
-    i32 width, i32 height, 
-    u8 channel_count, const u8* pixels, 
-    bool has_transparency,
-    Texture* out_texture)
+void renderer_create_texture(const u8* pixels, Texture* texture)
 {
-    renderer_state->backend->create_texture(name, width, height, channel_count, pixels, has_transparency, out_texture);
+    renderer_state->backend->create_texture(pixels, texture);
 }
 
 void renderer_destroy_texture(Texture* texture)
 {
     renderer_state->backend->destroy_texture(texture);
+}
+
+bool renderer_create_material(struct Material* material)
+{
+    return renderer_state->backend->create_material(material);
+}
+
+void renderer_destroy_material(struct Material* material)
+{
+    renderer_state->backend->destroy_material(material);
 }

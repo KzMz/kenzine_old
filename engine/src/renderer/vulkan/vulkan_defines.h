@@ -8,9 +8,10 @@
 #define MAX_INDICES 32
 #define MAX_PHYSICAL_DEVICES 32
 #define MAX_QUEUE_FAMILIES 32
-#define OBJECT_SHADER_STAGE_COUNT 2
-#define MAX_OBJECT_COUNT 1024
-#define OBJECT_SHADER_DESCRIPTOR_COUNT 2
+#define MATERIAL_SHADER_STAGE_COUNT 2
+#define MAX_MATERIAL_COUNT 1024
+#define MATERIAL_SHADER_DESCRIPTOR_COUNT 2
+#define MATERIAL_SHADER_SAMPLER_COUNT 1
 
 #define VK_ASSERT(expr) do { kz_assert((expr) == VK_SUCCESS); } while(0)
 
@@ -154,18 +155,18 @@ typedef struct VulkanDescriptorState
     u32 ids[3];
 } VulkanDescriptorState;
 
-typedef struct VulkanObjShaderState
+typedef struct VulkanMaterialShaderInstanceState
 {
     // Per frame
     VkDescriptorSet descriptor_sets[3];
 
     // Per descriptor
-    VulkanDescriptorState descriptor_states[OBJECT_SHADER_DESCRIPTOR_COUNT];
-} VulkanObjShaderState;
+    VulkanDescriptorState descriptor_states[MATERIAL_SHADER_DESCRIPTOR_COUNT];
+} VulkanMaterialShaderInstanceState;
 
 typedef struct VulkanMaterialShader
 {
-    VulkanShaderStage stages[OBJECT_SHADER_STAGE_COUNT];
+    VulkanShaderStage stages[MATERIAL_SHADER_STAGE_COUNT];
     VulkanPipeline pipeline;
 
     VkDescriptorPool global_descriptor_pool;
@@ -181,7 +182,9 @@ typedef struct VulkanMaterialShader
     VulkanBuffer local_uniform_buffer;
     u64 local_uniform_buffer_index;
 
-    VulkanObjShaderState object_states[MAX_OBJECT_COUNT];
+    VulkanMaterialShaderInstanceState instance_states[MAX_MATERIAL_COUNT];
+
+    TextureUsage sampler_uses[MATERIAL_SHADER_SAMPLER_COUNT];
 } VulkanMaterialShader;
 
 typedef i32 (*VulkanFindMemoryIndex)(u32 type_filter, u32 property_flags);

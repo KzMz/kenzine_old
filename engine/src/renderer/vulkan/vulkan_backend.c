@@ -224,13 +224,6 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
         context.device.graphics_command_pool, 
         VK_NULL_HANDLE, context.device.graphics_queue, &context.obj_index_buffer, 0, sizeof(u32) * index_count, indices);
 
-    u64 obj_id = INVALID_ID;
-    if (!vulkan_material_shader_acquire_resources(&context, &context.material_shader, &obj_id))
-    {
-        log_error("Failed to acquire resources for object shader.");
-        return false;
-    }
-
     log_info("Vulkan renderer initialized successfully.");
     return true;
 }
@@ -432,22 +425,12 @@ void vulkan_renderer_backend_resize(RendererBackend* backend, i32 width, i32 hei
     log_info("Resizing framebuffer to %dx%d %d", width, height, context.framebuffer_size_generated);
 }
 
-void vulkan_renderer_create_texture(
-    const char* name, 
-    i32 width, i32 height, 
-    u8 channel_count, const u8* pixels, 
-    bool has_transparency, 
-    Texture* out_texture)
+void vulkan_renderer_create_texture(const u8* pixels, Texture* texture)
 {
-    out_texture->width = width;
-    out_texture->height = height;
-    out_texture->channel_count = channel_count;
-    out_texture->generation = INVALID_ID;
+    texture->data = memory_alloc(sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
+    VulkanTexture* vk_texture = (VulkanTexture*) texture->data;
 
-    out_texture->data = memory_alloc(sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
-    VulkanTexture* texture = (VulkanTexture*) out_texture->data;
-
-    VkDeviceSize image_size = width * height * channel_count;
+    VkDeviceSize image_size = texture->width * texture->height * texture->channel_count;
     VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
 
     VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -459,13 +442,13 @@ void vulkan_renderer_create_texture(
     vulkan_image_create(
         &context,
         VK_IMAGE_TYPE_2D,
-        width, height,
+        texture->width, texture->height,
         format, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         true,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        &texture->image
+        &vk_texture->image
     );
 
     VulkanCommandBuffer command_buffer = {0};
@@ -474,16 +457,16 @@ void vulkan_renderer_create_texture(
     vulkan_command_buffer_alloc_and_begin_single_use(&context, command_pool, &command_buffer);
 
     vulkan_image_transition_layout(
-        &context, &command_buffer, &texture->image, format,
+        &context, &command_buffer, &vk_texture->image, format,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
     );
 
     vulkan_image_copy_from_buffer(
-        &context, &texture->image, staging_buffer.buffer, &command_buffer
+        &context, &vk_texture->image, staging_buffer.buffer, &command_buffer
     );
 
     vulkan_image_transition_layout(
-        &context, &command_buffer, &texture->image, format,
+        &context, &command_buffer, &vk_texture->image, format,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
 
@@ -507,15 +490,14 @@ void vulkan_renderer_create_texture(
     sampler_info.minLod = 0.0f;
     sampler_info.maxLod = 0.0f;
 
-    VkResult result = vkCreateSampler(context.device.logical_device, &sampler_info, context.allocator, &texture->sampler);
+    VkResult result = vkCreateSampler(context.device.logical_device, &sampler_info, context.allocator, &vk_texture->sampler);
     if (!vulkan_result_is_successful(result))
     {
-        log_error("Failed to create texture sampler. %s", vulkan_result_string(result, true));
+        log_error("Failed to create vk_texture sampler. %s", vulkan_result_string(result, true));
         return;
     }
 
-    out_texture->has_transparency = has_transparency;
-    out_texture->generation++;
+    texture->generation++;
 }
 
 void vulkan_renderer_destroy_texture(Texture* texture)
@@ -532,7 +514,6 @@ void vulkan_renderer_destroy_texture(Texture* texture)
 
         memory_free(texture->data, sizeof(VulkanTexture), MEMORY_TAG_TEXTURE);
     }
-    memory_zero(texture, sizeof(Texture));
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
@@ -813,4 +794,38 @@ void upload_data(VulkanContext* context, VkCommandPool pool, VkFence fence, VkQu
     );
 
     vulkan_buffer_destroy(context, &staging_buffer);
+}
+
+bool vulkan_renderer_create_material(Material* material)
+{
+    if (material == NULL)
+    {
+        log_error("Material is NULL.");
+        return false;
+    }
+
+    if (!vulkan_material_shader_acquire_resources(&context, &context.material_shader, material))
+    {
+        log_error("Failed to acquire resources for material.");
+        return false;
+    }
+
+    return true;
+}
+
+void vulkan_renderer_destroy_material(Material* material)
+{
+    if (material == NULL)
+    {
+        log_error("Material is NULL.");
+        return;
+    }
+
+    if (material->internal_id == INVALID_ID)
+    {
+        log_warning("Material has invalid internal id.");
+        return;
+    }
+
+    vulkan_material_shader_release_resources(&context, &context.material_shader, material);
 }
