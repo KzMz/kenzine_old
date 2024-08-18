@@ -8,8 +8,7 @@
 
 #include "renderer/renderer_frontend.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "vendor/stb_image.h"
+#include "systems/resource_system.h"
 
 #include <stddef.h>
 
@@ -239,31 +238,19 @@ void destroy_default_texture(TextureSystemState* state)
 
 bool load_texture(const char* texture_name, Texture* out_texture)
 {
-    char* format_str = "assets/textures/%s.%s";
-    const i32 required_channel_count = 4;
-    stbi_set_flip_vertically_on_load(true);
-    
-    const i32 max_path_length = 512;
-    char path[max_path_length];
-    string_format(path, format_str, texture_name, "png");
-
-    Texture tmp;
-    u8* data = stbi_load(
-        path,
-        (i32*) &tmp.width,
-        (i32*) &tmp.height,
-        (i32*) &tmp.channel_count,
-        required_channel_count
-    );
-
-    tmp.channel_count = required_channel_count;
-
-    if (data == NULL)
+    Resource image_resource;
+    if (!resource_system_load(texture_name, RESOURCE_TYPE_IMAGE, &image_resource))
     {
-        log_warning("Failed to load texture: %s. Reason: %s", path, stbi_failure_reason());
-        stbi__err(0, 0);
+        log_error("Failed to load texture: %s", texture_name);
         return false;
     }
+
+    ImageResourceData* image_data = (ImageResourceData*) image_resource.data;
+
+    Texture tmp;
+    tmp.width = image_data->width;
+    tmp.height = image_data->height;
+    tmp.channel_count = image_data->channel_count;
 
     u32 generation = out_texture->generation;
     out_texture->generation = INVALID_ID;
@@ -272,7 +259,7 @@ bool load_texture(const char* texture_name, Texture* out_texture)
     bool has_transparency = false;
     for (i64 i = 0; i < total_size; i += tmp.channel_count)
     {
-        u8 alpha = data[i + 3];
+        u8 alpha = image_data->pixels[i + 3];
         if (alpha < 255)
         {
             has_transparency = true;
@@ -280,18 +267,11 @@ bool load_texture(const char* texture_name, Texture* out_texture)
         }
     }
 
-    if (stbi_failure_reason())
-    {
-        log_warning("Failed to load texture: %s. Reason: %s", path, stbi_failure_reason());
-        stbi__err(0, 0);
-        return false;
-    }
-
     string_copy_n(tmp.name, texture_name, TEXTURE_NAME_MAX_LENGTH);
     tmp.generation = INVALID_ID;
     tmp.has_transparency = has_transparency;
 
-    renderer_create_texture(data, &tmp);
+    renderer_create_texture(image_data->pixels, &tmp);
 
     Texture old = *out_texture;
     *out_texture = tmp;
@@ -307,7 +287,7 @@ bool load_texture(const char* texture_name, Texture* out_texture)
         out_texture->generation = generation + 1;
     }
 
-    stbi_image_free(data);
+    resource_system_unload(&image_resource);
     return true;
 }
 

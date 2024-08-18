@@ -430,7 +430,7 @@ bool vulkan_renderer_create_geometry(Geometry* geometry, u32 vertex_count, const
         &context.obj_vertex_buffer, 
         internal_data->vertex_buffer_offset, 
         internal_data->vertex_size, 
-        vertices
+        (void* ) vertices
     );
     context.geometry_vertex_offset += internal_data->vertex_size;
 
@@ -445,7 +445,7 @@ bool vulkan_renderer_create_geometry(Geometry* geometry, u32 vertex_count, const
             &context.obj_index_buffer, 
             internal_data->index_buffer_offset, 
             internal_data->index_size, 
-            indices
+            (void*) indices
         );
         context.geometry_index_offset += internal_data->index_size;
     }

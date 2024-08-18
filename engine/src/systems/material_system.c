@@ -9,10 +9,7 @@
 #include "renderer/renderer_frontend.h"
 #include "systems/texture_system.h"
 #include "lib/string.h"
-
-// TODO: resource system
-#include "platform/filesystem.h"
-#include "vendor/json/json.h"
+#include "systems/resource_system.h"
 
 typedef struct MaterialSystemState
 {
@@ -34,9 +31,8 @@ typedef struct MaterialReference
 static MaterialSystemState* material_system_state = NULL;
 
 bool create_default_material(MaterialSystemState* state);
-bool load_material(MaterialConfig config, Material* out_material);
+bool load_material(MaterialResourceData config, Material* out_material);
 void destroy_material(Material* material);
-bool load_material_config(const char* path, MaterialConfig* out_config);
 
 bool material_system_init(void* state, MaterialSystemConfig config)
 {
@@ -104,22 +100,32 @@ u64 material_system_get_state_size(MaterialSystemConfig config)
 
 Material* material_system_acquire(const char* name)
 {
-    MaterialConfig config;
-    
-    char* format_str = "assets/materials/%s.%s";
-    char full_file_path[512];
-
-    string_format(full_file_path, format_str, name, "mat");
-    if (!load_material_config(full_file_path, &config))
+    Resource resource = {0};
+    if (!resource_system_load(name, RESOURCE_TYPE_MATERIAL, &resource))
     {
-        log_error("Failed to load material config: %s", name);
+        log_error("Failed to load material: %s", name);
         return NULL;
     }
 
-    return material_system_acquire_from_config(config);
+    Material* material = NULL;
+    if (resource.data != NULL)
+    {
+        MaterialResourceData* config = (MaterialResourceData*) resource.data;
+        material = material_system_acquire_from_config(*config);
+    }
+
+    resource_system_unload(&resource);
+
+    if (material == NULL)
+    {
+        log_error("Failed to acquire material: %s", name);
+        return NULL;
+    }
+
+    return material;
 }
 
-Material* material_system_acquire_from_config(MaterialConfig config)
+Material* material_system_acquire_from_config(MaterialResourceData config)
 {
     if (string_equals_nocase(config.name, DEFAULT_MATERIAL_NAME))
     {
@@ -220,7 +226,7 @@ Material* material_system_get_default(void)
     return &material_system_state->default_material;
 }
 
-bool load_material(MaterialConfig config, Material* out_material)
+bool load_material(MaterialResourceData config, Material* out_material)
 {
     memory_zero(out_material, sizeof(Material));
 
@@ -285,161 +291,5 @@ bool create_default_material(MaterialSystemState* state)
         return false;
     }
 
-    return true;
-}
-
-bool load_material_config(const char* path, MaterialConfig* out_config)
-{
-    FileHandle file_handle;
-    if (!file_open(path, FILE_MODE_READ, false, &file_handle))
-    {
-        log_error("Failed to open material config file: %s", path);
-        return false;
-    }
-
-    char buffer[4096] = {0};
-    u64 actual_size = 0;
-    file_get_contents(&file_handle, (char*) &buffer, &actual_size);
-    file_close(&file_handle);
-
-    JsonNode* root = json_decode(buffer);
-    if (root == NULL)
-    {
-        log_error("Failed to parse material config: %s", path);
-        return false;
-    }
-
-    char type[64];
-    JsonNode* type_node = json_find_member(root, "type");
-    if (type_node == NULL)
-    {
-        log_error("Material config missing type field: %s", path);
-        return false;
-    }
-    if (type_node->tag != JSON_STRING)
-    {
-        log_error("Material config type field is not a string: %s", path);
-        return false;
-    }
-    if (!string_equals_nocase(type_node->string_, "material"))
-    {
-        log_error("Material config type field is not a material: %s", path);
-        return false;
-    }
-
-    char name[MATERIAL_NAME_MAX_LENGTH];
-    JsonNode* name_node = json_find_member(root, "name");
-    if (name_node == NULL)
-    {
-        log_error("Material config missing name field: %s", path);
-        return false;
-    }
-    if (name_node->tag != JSON_STRING)
-    {
-        log_error("Material config name field is not a string: %s", path);
-        return false;
-    }
-
-    string_copy_n(out_config->name, name_node->string_, MATERIAL_NAME_MAX_LENGTH);
-
-    char diffuse_map_name[TEXTURE_NAME_MAX_LENGTH];
-    JsonNode* diffuse_map_node = json_find_member(root, "diffuse_map_name");
-    if (diffuse_map_node == NULL)
-    {
-        log_error("Material config missing diffuse_map field: %s", path);
-        return false;
-    }
-    if (diffuse_map_node->tag != JSON_STRING)
-    {
-        log_error("Material config diffuse_map field is not a string: %s", path);
-        return false;
-    }
-
-    string_copy_n(out_config->diffuse_map_name, diffuse_map_node->string_, TEXTURE_NAME_MAX_LENGTH);
-
-    f32 version = 0.0f;
-    JsonNode* version_node = json_find_member(root, "version");
-    if (version_node == NULL)
-    {
-        log_error("Material config missing version field: %s", path);
-        return false;
-    }
-    if (version_node->tag != JSON_NUMBER)
-    {
-        log_error("Material config version field is not a number: %s", path);
-        return false;
-    }
-
-    Vec4 diffuse_color = vec4_zero();
-    JsonNode* diffuse_color_node = json_find_member(root, "diffuse_color");
-    if (diffuse_color_node == NULL)
-    {
-        log_error("Material config missing diffuse_color field: %s", path);
-        return false;
-    }
-    if (diffuse_color_node->tag != JSON_OBJECT)
-    {
-        log_error("Material config diffuse_color field is not an array: %s", path);
-        return false;
-    }
-
-    f32 diffuse_color_r = 0.0f;
-    JsonNode* diffuse_color_r_node = json_find_member(diffuse_color_node, "r");
-    if (diffuse_color_r_node == NULL)
-    {
-        log_error("Material config missing diffuse_color r field: %s", path);
-        return false;
-    }
-    if (diffuse_color_r_node->tag != JSON_NUMBER)
-    {
-        log_error("Material config diffuse_color r field is not a number: %s", path);
-        return false;
-    }
-
-    f32 diffuse_color_g = 0.0f;
-    JsonNode* diffuse_color_g_node = json_find_member(diffuse_color_node, "g");
-    if (diffuse_color_g_node == NULL)
-    {
-        log_error("Material config missing diffuse_color g field: %s", path);
-        return false;
-    }
-    if (diffuse_color_g_node->tag != JSON_NUMBER)
-    {
-        log_error("Material config diffuse_color g field is not a number: %s", path);
-        return false;
-    }
-
-    f32 diffuse_color_b = 0.0f;
-    JsonNode* diffuse_color_b_node = json_find_member(diffuse_color_node, "b");
-    if (diffuse_color_b_node == NULL)
-    {
-        log_error("Material config missing diffuse_color b field: %s", path);
-        return false;
-    }
-    if (diffuse_color_b_node->tag != JSON_NUMBER)
-    {
-        log_error("Material config diffuse_color b field is not a number: %s", path);
-        return false;
-    }
-
-    f32 diffuse_color_a = 0.0f;
-    JsonNode* diffuse_color_a_node = json_find_member(diffuse_color_node, "a");
-    if (diffuse_color_a_node == NULL)
-    {
-        log_error("Material config missing diffuse_color a field: %s", path);
-        return false;
-    }
-    if (diffuse_color_a_node->tag != JSON_NUMBER)
-    {
-        log_error("Material config diffuse_color a field is not a number: %s", path);
-        return false;
-    }
-
-    diffuse_color.r = (f32) diffuse_color_r_node->number_;
-    diffuse_color.g = (f32) diffuse_color_g_node->number_;
-    diffuse_color.b = (f32) diffuse_color_b_node->number_;
-    diffuse_color.a = (f32) diffuse_color_a_node->number_;
-
-    out_config->diffuse_color = diffuse_color;
     return true;
 }

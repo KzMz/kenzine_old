@@ -12,6 +12,7 @@
 #include "systems/texture_system.h"
 #include "systems/material_system.h"
 #include "systems/geometry_system.h"
+#include "systems/resource_system.h"
 
 #include "lib/math/math_defines.h"
 #include "lib/math/mat4.h"
@@ -37,6 +38,9 @@ typedef struct AppState
 
     void* platform_state;
     u64 platform_state_size;
+
+    void* resource_system_state;
+    u64 resource_system_state_size;
 
     void* renderer_state;
     u64 renderer_state_size;
@@ -118,6 +122,19 @@ KENZINE_API bool app_init(Game* game)
         game->app_config.start_y))
     {
         log_error("Failed to initialize platform");
+        return false;
+    }
+
+    // Resource subsystem
+    ResourceSystemConfig resource_config = {0};
+    resource_config.max_loaders = 32;
+    resource_config.asset_base_path = "../assets";
+    app_state->resource_system_state_size = resource_system_get_state_size(resource_config);
+    void* resource_system_state = memory_alloc(app_state->resource_system_state_size, MEMORY_TAG_APP);
+    app_state->resource_system_state = resource_system_state;
+    if (!resource_system_init(resource_system_state, resource_config))
+    {
+        log_error("Failed to initialize resource system");
         return false;
     }
 
@@ -283,15 +300,18 @@ KENZINE_API void app_shutdown(void)
 
     event_unsubscribe(EVENT_CODE_DEBUG0, 0, event_on_debug);
 
+    input_shutdown();
+
     geometry_system_shutdown();
     material_system_shutdown();
     texture_system_shutdown();
 
     event_system_shutdown();
 
-    input_shutdown();
-
     renderer_shutdown();
+
+    resource_system_shutdown();
+
     platform_shutdown();
     
     log_shutdown();

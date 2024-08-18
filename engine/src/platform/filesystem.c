@@ -63,6 +63,20 @@ void file_close(FileHandle* handle)
     }
 }
 
+bool file_size(FileHandle* handle, u64* out_size)
+{
+    if (handle == NULL || !handle->valid)
+    {
+        return false;
+    }
+
+    FILE* file = (FILE*) handle->handle;
+    fseek(file, 0, SEEK_END);
+    *out_size = ftell(file);
+    rewind(file);
+    return true;
+}
+
 bool file_read_line(FileHandle* handle, u64 max_length, char** line_buf, u64* out_length)
 {
     if (!handle->valid)
@@ -89,11 +103,13 @@ bool file_get_contents(FileHandle* handle, char* out_contents, u64* out_size)
         return false;
     }
 
-    FILE* file = (FILE*) handle->handle;
-    fseek(file, 0, SEEK_END);
-    u64 size = ftell(file);
-    rewind(file);
+    u64 size = 0;
+    if (!file_size(handle, &size))
+    {
+        return false;
+    }
 
+    FILE* file = (FILE*) handle->handle;
     *out_size = fread(out_contents, 1, size, file);
     return *out_size == size;
 }
@@ -130,7 +146,7 @@ bool file_read(FileHandle* handle, u64 size, void* out_data, u64* out_actual_siz
     return *out_actual_size == size;
 }
 
-bool file_read_all_bytes(FileHandle* handle, u8** out_bytes, u64* out_actual_size)
+bool file_read_all_bytes(FileHandle* handle, u8* out_bytes, u64* out_actual_size)
 {
     if (!handle->valid)
     {
@@ -138,13 +154,14 @@ bool file_read_all_bytes(FileHandle* handle, u8** out_bytes, u64* out_actual_siz
         return false;
     }
 
-    FILE* file = (FILE*) handle->handle;
-    fseek(file, 0, SEEK_END);
-    u64 size = ftell(file);
-    rewind(file);
+    u64 size = 0;
+    if (!file_size(handle, &size))
+    {
+        return false;
+    }
 
-    *out_bytes = memory_alloc(sizeof(u8) * size, MEMORY_TAG_STRING);
-    *out_actual_size = fread(*out_bytes, 1, size, file);
+    FILE* file = (FILE*) handle->handle;
+    *out_actual_size = fread(out_bytes, 1, size, file);
     return *out_actual_size == size;
 }
 

@@ -16,9 +16,13 @@ static const char* memory_strings[MEMORY_TAG_COUNT] =
     "TEXTURE\t\t",
     "GEOMETRY\t",
     "HASHTABLE\t",
+    "RESOURCESYSTEM\t",
     "TEXTURESYSTEM\t",
     "MATERIALSYSTEM\t",
     "GEOMETRYSYSTEM\t",
+    "MATERIALINSTANCE\t",
+    "BINARY\t\t",
+    "TEXT\t\t",
     "CUSTOM\t\t",
 };
 
