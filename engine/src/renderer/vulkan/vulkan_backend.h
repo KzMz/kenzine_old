@@ -22,6 +22,10 @@ void vulkan_renderer_destroy_texture(Texture* texture);
 bool vulkan_renderer_create_material(Material* material);
 void vulkan_renderer_destroy_material(Material* material);
 
-bool vulkan_renderer_create_geometry(Geometry* geometry, u32 vertex_count, const Vertex3d* vertices, u32 index_count, const u32* indices);
+bool vulkan_renderer_create_geometry(
+    Geometry* geometry, 
+    u32 vertex_count, u32 vertex_size, const void* vertices, 
+    u32 index_count, u32 index_size, const void* indices
+);
 void vulkan_renderer_draw_geometry(GeometryRenderData data);
 void vulkan_renderer_destroy_geometry(Geometry* geometry);

@@ -9,6 +9,8 @@
 #include "lib/math/vec4.h"
 #include "platform/filesystem.h"
 #include "vendor/json/json.h"
+#include "resources/json_utils.h"
+#include "loader_utils.h"
 
 #include <stddef.h>
 
@@ -23,8 +25,6 @@ bool material_loader_load(ResourceLoader* self, const char* name, Resource* out_
     char path[512];
     string_format(path, format_str, resource_system_get_asset_base_path(), self->type_path, name, ".mat");
 
-    out_resource->full_path = string_clone(path);
-
     FileHandle file_handle;
     if (!file_open(path, FILE_MODE_READ, false, &file_handle))
     {
@@ -32,7 +32,10 @@ bool material_loader_load(ResourceLoader* self, const char* name, Resource* out_
         return false;
     }
 
+    out_resource->full_path = string_clone(path);
+
     MaterialResourceData* resource_data = (MaterialResourceData*) memory_alloc(sizeof(MaterialResourceData), MEMORY_TAG_MATERIALINSTANCE);
+    resource_data->type = MATERIAL_TYPE_WORLD;
     resource_data->auto_release = true;
     resource_data->diffuse_color = vec4_one(); 
     resource_data->diffuse_map_name[0] = 0;
@@ -50,48 +53,51 @@ bool material_loader_load(ResourceLoader* self, const char* name, Resource* out_
         return false;
     }
 
-    char type[64];
-    JsonNode* type_node = json_find_member(root, "type");
-    if (type_node == NULL)
+    ResourceMetadata metadata;
+    if (!json_utils_get_resource_metadata(RESOURCE_TYPE_MATERIAL, root, MATERIAL_NAME_MAX_LENGTH, &metadata))
     {
-        log_error("Material config missing type field: %s", path);
+        log_error("Failed to get material metadata: %s", path);
         return false;
     }
-    if (type_node->tag != JSON_STRING)
-    {
-        log_error("Material config type field is not a string: %s", path);
-        return false;
-    }
-    if (!string_equals_nocase(type_node->string_, "material"))
-    {
-        log_error("Material config type field is not a material: %s", path);
-        return false;
-    }
-
-    JsonNode* name_node = json_find_member(root, "name");
-    if (name_node != NULL && name_node->tag == JSON_STRING)
-    {
-        string_copy_n(resource_data->name, name_node->string_, MATERIAL_NAME_MAX_LENGTH);
-    }
+    
+    string_copy_n(resource_data->name, metadata.name, MATERIAL_NAME_MAX_LENGTH);
 
     JsonNode* diffuse_map_node = json_find_member(root, "diffuse_map_name");
     if (diffuse_map_node != NULL && diffuse_map_node->tag == JSON_STRING)
     {
         string_copy_n(resource_data->diffuse_map_name, diffuse_map_node->string_, TEXTURE_NAME_MAX_LENGTH);
     }
-    
-    f32 version = 0.0f;
-    JsonNode* version_node = json_find_member(root, "version");
-    if (version_node == NULL)
+
+    MaterialType type = MATERIAL_TYPE_WORLD;
+    JsonNode* type_node = json_find_member(root, "type");
+    if (type_node == NULL)
     {
-        log_error("Material config missing version field: %s", path);
-        return false;
-    }
-    if (version_node->tag != JSON_NUMBER)
+        log_error("Material config missing type field: %s. Defaulting to WORLD", path);
+    } 
+    else 
     {
-        log_error("Material config version field is not a number: %s", path);
-        return false;
+        if (type_node->tag != JSON_STRING)
+        {
+            log_error("Material config type field is not a string: %s", path);
+            return false;
+        }
+
+        if (string_equals_nocase(type_node->string_, "WORLD"))
+        {
+            type = MATERIAL_TYPE_WORLD;
+        }
+        else if (string_equals_nocase(type_node->string_, "UI"))
+        {
+            type = MATERIAL_TYPE_UI;
+        }
+        else
+        {
+            log_error("Material config type field is not a valid type: %s", path);
+            return false;
+        }
     }
+
+    resource_data->type = type;
 
     Vec4 diffuse_color = vec4_zero();
     JsonNode* diffuse_color_node = json_find_member(root, "diffuse_color");
@@ -170,28 +176,7 @@ bool material_loader_load(ResourceLoader* self, const char* name, Resource* out_
 
 bool material_loader_unload(ResourceLoader* self, Resource* resource)
 {
-    if (self == NULL || resource == NULL)
-    {
-        return false;
-    }
-
-    u32 path_length = string_length(resource->full_path);
-    if (path_length > 0)
-    {
-        memory_free(resource->full_path, path_length, MEMORY_TAG_STRING);
-    }
-
-    if (resource->data == NULL)
-    {
-        return false;
-    }
-
-    memory_free(resource->data, resource->size, MEMORY_TAG_MATERIALINSTANCE);
-    resource->data = NULL;
-    resource->size = 0;
-    resource->loader_id = INVALID_ID;
-
-    return true;
+    return resource_unload(self, resource, MEMORY_TAG_MATERIALINSTANCE);
 }
 
 ResourceLoader material_resource_loader_create(void)

@@ -13,9 +13,11 @@ typedef struct GeometrySystemConfig
 typedef struct GeometryConfig
 {
     u32 vertex_count;
-    Vertex3d* vertices;
+    u32 vertex_size;
+    void* vertices;
     u32 index_count;
-    u32* indices;
+    u32 index_size;
+    void* indices;
     char name[GEOMETRY_NAME_MAX_LENGTH];
     char material_name[MATERIAL_NAME_MAX_LENGTH];    
 } GeometryConfig;
@@ -29,6 +31,7 @@ Geometry* geometry_system_acquire_from_config(GeometryConfig config, bool auto_r
 void geometry_system_release(Geometry* geometry);
 
 Geometry* geometry_system_get_default(void);
+Geometry* geometry_system_get_default_2d(void);
 
 GeometryConfig geometry_system_generate_plane_config(
     f32 width, f32 height, 

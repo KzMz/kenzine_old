@@ -55,6 +55,7 @@ typedef struct AppState
     u64 geometry_system_state_size;
 
     Geometry* test_geometry;
+    Geometry* test_ui_geometry;
 } AppState;
 
 static AppState* app_state = 0;
@@ -187,6 +188,28 @@ KENZINE_API bool app_init(Game* game)
     memory_free(plane_config.vertices, sizeof(Vertex3d) * plane_config.vertex_count, MEMORY_TAG_APP);
     memory_free(plane_config.indices, sizeof(u32) * plane_config.index_count, MEMORY_TAG_APP);
 
+    GeometryConfig ui_config;
+    ui_config.vertex_count = 4;
+    ui_config.vertex_size = sizeof(Vertex2d);
+    ui_config.index_count = 6;
+    ui_config.index_size = sizeof(u32);
+    string_copy_n(ui_config.name, "test_ui_geometry", GEOMETRY_NAME_MAX_LENGTH);
+    string_copy_n(ui_config.material_name, "test_ui_material", MATERIAL_NAME_MAX_LENGTH);
+
+    const f32 f = 512.0f;
+    Vertex2d uiverts[4] = {
+        { { 0.0f, 0.0f }, { 0.0f, 0.0f } },
+        { { f, f }, { 1.0f, 1.0f } },
+        { { 0, f }, { 0.0f, 1.0f } },
+        { { f, 0 }, { 1.0f, 0.0f } }
+    };
+    ui_config.vertices = uiverts;
+
+    u32 uiinds[6] = { 2, 1, 0, 3, 0, 1 };
+    ui_config.indices = uiinds;
+
+    app_state->test_ui_geometry = geometry_system_acquire_from_config(ui_config, true);
+
     if (!app_state->game->init(app_state->game)) {
         log_fatal("Failed to initialize game");
         return false;
@@ -253,8 +276,12 @@ KENZINE_API bool app_run(void)
             packet.geometries = &render_data;
             packet.geometry_count = 1;
 
-            packet.ui_geometry_count = 0;
-            packet.ui_geometries = NULL;
+            GeometryRenderData ui_render_data = {0};
+            ui_render_data.geometry = app_state->test_ui_geometry;
+            ui_render_data.model = mat4_translation((Vec3) { 0, 0, 0 });
+
+            packet.ui_geometry_count = 1;
+            packet.ui_geometries = &ui_render_data;
 
             renderer_draw_frame(&packet);
 

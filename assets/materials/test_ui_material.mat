@@ -2,10 +2,10 @@
     "resource": 
     {
         "type": "material",
-        "name": "test material",
+        "name": "test ui material",
         "version": "0.1"
     },
-    "type": "world",
+    "type": "ui",
     "diffuse_color": 
     {
         "r": 1.0,
@@ -13,5 +13,5 @@
         "b": 1.0,
         "a": 1.0
     },
-    "diffuse_map_name": "dadobax"
+    "diffuse_map_name": "orange_lines_512"
 }

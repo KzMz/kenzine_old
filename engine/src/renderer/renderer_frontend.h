@@ -22,5 +22,10 @@ void renderer_destroy_texture(Texture* texture);
 bool renderer_create_material(struct Material* material);
 void renderer_destroy_material(struct Material* material);
 
-bool renderer_create_geometry(struct Geometry* geometry, u32 vertex_count, const Vertex3d* vertices, u32 index_count, const u32* indices);
+bool renderer_create_geometry
+(
+    Geometry* geometry, 
+    u32 vertex_count, u32 vertex_size, const void* vertices, 
+    u32 index_count, u32 index_size, const void* indices
+);
 void renderer_destroy_geometry(struct Geometry* geometry);

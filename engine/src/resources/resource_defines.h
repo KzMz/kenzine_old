@@ -1,6 +1,9 @@
 #pragma once
 #include "lib/math/math_defines.h"
 
+#define RESOURCE_VERSION_MAX_LENGTH 8
+#define RESOURCE_CUSTOM_TYPE_MAX_LENGTH 256
+
 #define TEXTURE_NAME_MAX_LENGTH 512
 #define MATERIAL_NAME_MAX_LENGTH 256
 #define GEOMETRY_NAME_MAX_LENGTH 256
@@ -24,6 +27,14 @@ typedef struct Resource
     u64 size;
     void* data;
 } Resource;
+
+typedef struct ResourceMetadata
+{
+    ResourceType type;
+    char name[TEXTURE_NAME_MAX_LENGTH];
+    char version[RESOURCE_VERSION_MAX_LENGTH];
+    char custom_type[RESOURCE_CUSTOM_TYPE_MAX_LENGTH];
+} ResourceMetadata;
 
 typedef struct ImageResourceData
 {
@@ -57,9 +68,16 @@ typedef struct TextureMap
     TextureUsage usage;
 } TextureMap;
 
+typedef enum MaterialType
+{
+    MATERIAL_TYPE_WORLD,
+    MATERIAL_TYPE_UI
+} MaterialType;
+
 typedef struct MaterialResourceData
 {
     char name[MATERIAL_NAME_MAX_LENGTH];
+    MaterialType type;
     bool auto_release;
     Vec4 diffuse_color;
     char diffuse_map_name[TEXTURE_NAME_MAX_LENGTH];
@@ -70,6 +88,7 @@ typedef struct Material
     u64 id;
     u32 generation;
     u64 internal_id;
+    MaterialType type;
     char name[MATERIAL_NAME_MAX_LENGTH];
     Vec4 diffuse_color;
     TextureMap diffuse_map;

@@ -19,13 +19,16 @@ typedef struct GeometryReference
 typedef struct GeometrySystemState
 {
     GeometrySystemConfig config;
+    
     Geometry default_geometry;
+    Geometry default_2d_geometry;
+
     GeometryReference* geometries;
 } GeometrySystemState;
 
 static GeometrySystemState* geometry_system_state = 0;
 
-bool create_default_geometry(GeometrySystemState* state);
+bool create_default_geometries(GeometrySystemState* state);
 bool create_geometry(GeometrySystemState* state, GeometryConfig config, Geometry* out_geometry);
 void destroy_geometry(GeometrySystemState* state, Geometry* geometry);
 
@@ -48,7 +51,7 @@ bool geometry_system_init(void* state, GeometrySystemConfig config)
         geometry_system_state->geometries[i].geometry.generation = INVALID_ID;
     }
 
-    if (!create_default_geometry(geometry_system_state))
+    if (!create_default_geometries(geometry_system_state))
     {
         log_error("Failed to create default geometry");
         return false;
@@ -150,9 +153,23 @@ Geometry* geometry_system_get_default(void)
     return NULL;
 }
 
+Geometry* geometry_system_get_default_2d(void)
+{
+    if (geometry_system_state)
+    {
+        return &geometry_system_state->default_2d_geometry;
+    }
+
+    return NULL;
+}
+
 bool create_geometry(GeometrySystemState* state, GeometryConfig config, Geometry* out_geometry)
 {
-    if (!renderer_create_geometry(out_geometry, config.vertex_count, config.vertices, config.index_count, config.indices))
+    if (!renderer_create_geometry(
+        out_geometry, 
+        config.vertex_count, config.vertex_size, config.vertices, 
+        config.index_count, config.index_size, config.indices
+    ))
     {
         state->geometries[out_geometry->id].reference_count = 0;
         state->geometries[out_geometry->id].auto_release = false;
@@ -191,7 +208,7 @@ void destroy_geometry(GeometrySystemState* state, Geometry* geometry)
     geometry->material = NULL;
 }
 
-bool create_default_geometry(GeometrySystemState* state)
+bool create_default_geometries(GeometrySystemState* state)
 {
     const u32 vertex_count = 4;
     Vertex3d verts[vertex_count] = {
@@ -216,13 +233,44 @@ bool create_default_geometry(GeometrySystemState* state)
     const u32 index_count = 6;
     u32 indices[index_count] = {0, 1, 2, 0, 3, 1};
 
-    if (!renderer_create_geometry(&state->default_geometry, vertex_count, verts, index_count, indices))
+    if (!renderer_create_geometry(&state->default_geometry, vertex_count, sizeof(Vertex3d), verts, index_count, sizeof(u32), indices))
     {
         log_fatal("Failed to create default geometry");
         return false;
     }
 
     state->default_geometry.material = material_system_get_default();
+
+    const u32 vertex_count_2d = 4;
+    Vertex2d verts_2d[vertex_count_2d] = {
+        {
+            .position = {-.5f * 10, -0.5f * 10},
+            .texcoord = {0.0f, 0.0f},
+        },
+        {
+            .position = {0.5f * 10, 0.5f * 10},
+            .texcoord = {1.0f, 1.0f},
+        },
+        {
+            .position = {-0.5f * 10, 0.5f * 10},
+            .texcoord = {0.0f, 1.0f},
+        },
+        {
+            .position = {0.5f * 10, -0.5f * 10},
+            .texcoord = {1.0f, 0.0f},    
+        }
+    };    
+
+    const u32 index_count_2d = 6;
+    u32 indices_2d[index_count_2d] = {2, 1, 0, 3, 0, 1};
+
+    if (!renderer_create_geometry(&state->default_2d_geometry, vertex_count_2d, sizeof(Vertex2d), verts_2d, index_count_2d, sizeof(u32), indices_2d))
+    {
+        log_fatal("Failed to create default 2d geometry");
+        return false;
+    }
+
+    state->default_2d_geometry.material = material_system_get_default();
 
     return true;
 }
@@ -267,8 +315,10 @@ GeometryConfig geometry_system_generate_plane_config(
     }
 
     GeometryConfig config;
+    config.vertex_size = sizeof(Vertex3d);
     config.vertex_count = x_segments * y_segments * 4;
     config.vertices = memory_alloc(sizeof(Vertex3d) * config.vertex_count, MEMORY_TAG_GEOMETRY);
+    config.index_size = sizeof(u32);
     config.index_count = x_segments * y_segments * 6;
     config.indices = memory_alloc(sizeof(u32) * config.index_count, MEMORY_TAG_GEOMETRY);
 
@@ -290,10 +340,10 @@ GeometryConfig geometry_system_generate_plane_config(
             f32 max_uvy = ((y + 1) / (f32) y_segments) * tile_y;
 
             u32 v_offset = ((y * x_segments) + x) * 4;
-            Vertex3d* v0 = &config.vertices[v_offset + 0];
-            Vertex3d* v1 = &config.vertices[v_offset + 1];
-            Vertex3d* v2 = &config.vertices[v_offset + 2];
-            Vertex3d* v3 = &config.vertices[v_offset + 3];
+            Vertex3d* v0 = &((Vertex3d*) config.vertices)[v_offset + 0];
+            Vertex3d* v1 = &((Vertex3d*) config.vertices)[v_offset + 1];
+            Vertex3d* v2 = &((Vertex3d*) config.vertices)[v_offset + 2];
+            Vertex3d* v3 = &((Vertex3d*) config.vertices)[v_offset + 3];
 
             v0->position = (Vec3) { min_x, min_y, 0.0f };
             v0->texcoord = (Vec2) { min_uvx, min_uvy };
@@ -308,12 +358,12 @@ GeometryConfig geometry_system_generate_plane_config(
             v3->texcoord = (Vec2) { max_uvx, min_uvy };
 
             u32 i_offset = ((y * x_segments) + x) * 6;
-            config.indices[i_offset + 0] = v_offset + 0;
-            config.indices[i_offset + 1] = v_offset + 1;
-            config.indices[i_offset + 2] = v_offset + 2;
-            config.indices[i_offset + 3] = v_offset + 0;
-            config.indices[i_offset + 4] = v_offset + 3;
-            config.indices[i_offset + 5] = v_offset + 1;
+            ((u32*) config.indices)[i_offset + 0] = v_offset + 0;
+            ((u32*) config.indices)[i_offset + 1] = v_offset + 1;
+            ((u32*) config.indices)[i_offset + 2] = v_offset + 2;
+            ((u32*) config.indices)[i_offset + 3] = v_offset + 0;
+            ((u32*) config.indices)[i_offset + 4] = v_offset + 3;
+            ((u32*) config.indices)[i_offset + 5] = v_offset + 1;
         }
     }
 

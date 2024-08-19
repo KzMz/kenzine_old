@@ -6,6 +6,7 @@
 #include "resources/resource_defines.h"
 #include "systems/resource_system.h"
 #include "platform/filesystem.h"
+#include "loader_utils.h"
 
 #include <stddef.h>
 
@@ -20,14 +21,14 @@ bool binary_loader_load(ResourceLoader* self, const char* name, Resource* out_re
     char path[512];
     string_format(path, format_str, resource_system_get_asset_base_path(), self->type_path, name, "");
 
-    out_resource->full_path = string_clone(path);
-
     FileHandle file_handle;
     if (!file_open(path, FILE_MODE_READ, true, &file_handle))
     {
         log_error("Failed to open binary file: %s", path);
         return false;
     }
+
+    out_resource->full_path = string_clone(path);
 
     u64 size = 0;
     if (!file_size(&file_handle, &size))
@@ -59,26 +60,7 @@ bool binary_loader_load(ResourceLoader* self, const char* name, Resource* out_re
 
 bool binary_loader_unload(ResourceLoader* self, Resource* resource)
 {
-    if (self == NULL || resource == NULL)
-    {
-        return false;
-    }
-
-    u32 path_length = string_length(resource->full_path);
-    if (path_length > 0)
-    {
-        memory_free(resource->full_path, path_length, MEMORY_TAG_STRING);
-    }
-
-    if (resource->data != NULL)
-    {
-        memory_free(resource->data, resource->size, MEMORY_TAG_BINARY);
-        resource->data = NULL;
-        resource->size = 0;
-        resource->loader_id = INVALID_ID;
-    }
-
-    return true;
+    return resource_unload(self, resource, MEMORY_TAG_BINARY);
 }
 
 ResourceLoader binary_resource_loader_create(void)

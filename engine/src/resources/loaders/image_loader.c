@@ -5,6 +5,7 @@
 #include "lib/string.h"
 #include "resources/resource_defines.h"
 #include "systems/resource_system.h"
+#include "resources/loaders/loader_utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "vendor/stb_image.h"
@@ -66,28 +67,7 @@ bool image_loader_load(ResourceLoader* self, const char* name, Resource* out_res
 
 bool image_loader_unload(ResourceLoader* self, Resource* resource)
 {
-    if (self == NULL || resource == NULL)
-    {
-        return false;
-    }
-
-    u32 path_length = string_length(resource->full_path);
-    if (path_length > 0)
-    {
-        memory_free(resource->full_path, path_length, MEMORY_TAG_STRING);
-    }
-
-    if (resource->data == NULL)
-    {
-        return false;
-    }
-
-    memory_free(resource->data, resource->size, MEMORY_TAG_TEXTURE);
-    resource->data = NULL;
-    resource->size = 0;
-    resource->loader_id = INVALID_ID;
-
-    return true;
+    return resource_unload(self, resource, MEMORY_TAG_TEXTURE);
 }
 
 ResourceLoader image_resource_loader_create(void)

@@ -105,6 +105,11 @@ void vulkan_renderpass_create(VulkanContext* context, VulkanRenderPass* out_rend
     render_pass_info.flags = 0;
     render_pass_info.pNext = NULL;
 
+    if (subpass.pDepthStencilAttachment == NULL)
+    {
+        log_info("Creating render pass without depth attachment");
+    }
+
     VK_ASSERT(vkCreateRenderPass(context->device.logical_device, &render_pass_info, context->allocator, &out_render_pass->render_pass));
 }
 

@@ -142,7 +142,7 @@ bool vulkan_ui_shader_create(VulkanContext* context, VulkanUIShader* out_shader)
 
     if (!vulkan_pipeline_create(
         context,
-        &context->main_render_pass,
+        &context->ui_render_pass,
         sizeof(Vertex2d),
         attribute_count,
         attributes,

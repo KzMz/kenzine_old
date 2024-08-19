@@ -231,6 +231,7 @@ bool load_material(MaterialResourceData config, Material* out_material)
     memory_zero(out_material, sizeof(Material));
 
     string_copy_n(out_material->name, config.name, MATERIAL_NAME_MAX_LENGTH);
+    out_material->type = config.type;
     out_material->diffuse_color = config.diffuse_color;
 
     if (string_length(config.diffuse_map_name) > 0)

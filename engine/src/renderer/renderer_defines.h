@@ -38,7 +38,12 @@ typedef void (*RendererBackendCreateTexture)(const u8* pixels, Texture* texture)
 typedef void (*RendererBackendDestroyTexture)(Texture* texture);
 typedef bool (*RendererBackendCreateMaterial)(Material* material);
 typedef void (*RendererBackendDestroyMaterial)(Material* material);
-typedef bool (*RendererBackendCreateGeometry)(Geometry* geometry, u32 vertex_count, const Vertex3d* vertices, u32 index_count, const u32* indices);
+typedef bool (*RendererBackendCreateGeometry)
+(
+    Geometry* geometry, 
+    u32 vertex_count, u32 vertex_size, const void* vertices, 
+    u32 index_count, u32 index_size, const void* indices
+);
 typedef void (*RendererBackendDrawGeometry)(GeometryRenderData data);
 typedef void (*RendererBackendDestroyGeometry)(Geometry* geometry);
 typedef bool (*RendererBackendBeginRenderpass)(struct RendererBackend* backend, u8 pass);

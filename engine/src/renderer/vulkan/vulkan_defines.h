@@ -169,11 +169,11 @@ typedef struct VulkanGeometryData
     u32 generation;
     
     u64 vertex_count;
-    u32 vertex_size;
+    u32 vertex_element_size;
     u64 vertex_buffer_offset;
 
     u64 index_count;
-    u32 index_size;
+    u32 index_element_size;
     u64 index_buffer_offset;
 } VulkanGeometryData;
 

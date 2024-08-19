@@ -176,9 +176,14 @@ void renderer_destroy_material(struct Material* material)
     renderer_state->backend->destroy_material(material);
 }
 
-bool renderer_create_geometry(struct Geometry* geometry, u32 vertex_count, const Vertex3d* vertices, u32 index_count, const u32* indices)
+bool renderer_create_geometry
+(    
+    Geometry* geometry, 
+    u32 vertex_count, u32 vertex_size, const void* vertices, 
+    u32 index_count, u32 index_size, const void* indices
+)
 {
-    return renderer_state->backend->create_geometry(geometry, vertex_count, vertices, index_count, indices);
+    return renderer_state->backend->create_geometry(geometry, vertex_count, vertex_size, vertices, index_count, index_size, indices);
 }
 
 void renderer_destroy_geometry(struct Geometry* geometry)

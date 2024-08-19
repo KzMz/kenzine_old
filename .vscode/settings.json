@@ -37,6 +37,7 @@
         "resource_defines.h": "c",
         "image_loader.h": "c",
         "text_loader.h": "c",
-        "vulkan_material_shader.h": "c"
+        "vulkan_material_shader.h": "c",
+        "loader_utils.h": "c"
     }
 }
