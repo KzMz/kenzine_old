@@ -9,6 +9,7 @@
 bool vulkan_pipeline_create(
     VulkanContext* context,
     VulkanRenderPass* render_pass,
+    u32 stride,
     u32 attribute_count,
     VkVertexInputAttributeDescription* attributes,
     u32 descriptor_count,
@@ -18,6 +19,7 @@ bool vulkan_pipeline_create(
     VkViewport viewport,
     VkRect2D scissor,
     bool is_wireframe,
+    bool use_depth_test,
     VulkanPipeline* out_pipeline
 )
 {
@@ -48,11 +50,14 @@ bool vulkan_pipeline_create(
     multisample_state.alphaToOneEnable = VK_FALSE;
 
     VkPipelineDepthStencilStateCreateInfo depth_stencil_state = {VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-    depth_stencil_state.depthTestEnable = VK_TRUE;
-    depth_stencil_state.depthWriteEnable = VK_TRUE;
-    depth_stencil_state.depthCompareOp = VK_COMPARE_OP_LESS;
-    depth_stencil_state.depthBoundsTestEnable = VK_FALSE;
-    depth_stencil_state.stencilTestEnable = VK_FALSE;
+    if (use_depth_test)
+    {
+        depth_stencil_state.depthTestEnable = VK_TRUE;
+        depth_stencil_state.depthWriteEnable = VK_TRUE;
+        depth_stencil_state.depthCompareOp = VK_COMPARE_OP_LESS;
+        depth_stencil_state.depthBoundsTestEnable = VK_FALSE;
+        depth_stencil_state.stencilTestEnable = VK_FALSE;
+    }
 
     VkPipelineColorBlendAttachmentState color_blend_attachment = {0};
     memory_zero(&color_blend_attachment, sizeof(VkPipelineColorBlendAttachmentState));
@@ -82,7 +87,7 @@ bool vulkan_pipeline_create(
 
     VkVertexInputBindingDescription binding_description = {0};
     binding_description.binding = 0;
-    binding_description.stride = sizeof(Vertex3d);
+    binding_description.stride = stride;
     binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
     VkPipelineVertexInputStateCreateInfo vertex_input_state = {VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
@@ -119,7 +124,7 @@ bool vulkan_pipeline_create(
     pipeline_info.pViewportState = &viewport_state;
     pipeline_info.pRasterizationState = &rasterization_state;
     pipeline_info.pMultisampleState = &multisample_state;
-    pipeline_info.pDepthStencilState = &depth_stencil_state;
+    pipeline_info.pDepthStencilState = use_depth_test ? &depth_stencil_state : NULL;
     pipeline_info.pColorBlendState = &color_blend_state;
     pipeline_info.pDynamicState = &dynamic_state;
     pipeline_info.pTessellationState = NULL;

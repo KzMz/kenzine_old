@@ -43,9 +43,9 @@ bool resource_system_init(void* state, ResourceSystemConfig config)
     }
 
     resource_system_register_loader(text_resource_loader_create());
+    resource_system_register_loader(binary_resource_loader_create());
     resource_system_register_loader(image_resource_loader_create());
     resource_system_register_loader(material_resource_loader_create());
-    resource_system_register_loader(binary_resource_loader_create());
 
     log_info("Resource system initialized. [Base path: %s]", config.asset_base_path);
     return true;

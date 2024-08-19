@@ -5,6 +5,7 @@
 bool vulkan_pipeline_create(
     VulkanContext* context,
     VulkanRenderPass* render_pass,
+    u32 stride,
     u32 attribute_count,
     VkVertexInputAttributeDescription* attributes,
     u32 descriptor_count,
@@ -14,6 +15,7 @@ bool vulkan_pipeline_create(
     VkViewport viewport,
     VkRect2D scissor,
     bool is_wireframe,
+    bool use_depth_test,
     VulkanPipeline* out_pipeline
 );
 

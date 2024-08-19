@@ -253,6 +253,9 @@ KENZINE_API bool app_run(void)
             packet.geometries = &render_data;
             packet.geometry_count = 1;
 
+            packet.ui_geometry_count = 0;
+            packet.ui_geometries = NULL;
+
             renderer_draw_frame(&packet);
 
             f64 frame_end_time = platform_get_absolute_time();

@@ -11,7 +11,8 @@ bool renderer_backend_create(RendererBackendType type, RendererBackend* out_back
         out_backend->resize = vulkan_renderer_backend_resize;
         out_backend->begin_frame = vulkan_renderer_backend_begin_frame;
         out_backend->end_frame = vulkan_renderer_backend_end_frame;
-        out_backend->update_global_uniform = vulkan_renderer_update_global_uniform;
+        out_backend->update_global_world_uniform = vulkan_renderer_update_global_world_uniform;
+        out_backend->update_global_ui_uniform = vulkan_renderer_update_global_ui_uniform;
         out_backend->create_geometry = vulkan_renderer_create_geometry;
         out_backend->draw_geometry = vulkan_renderer_draw_geometry;
         out_backend->destroy_geometry = vulkan_renderer_destroy_geometry;
@@ -19,6 +20,8 @@ bool renderer_backend_create(RendererBackendType type, RendererBackend* out_back
         out_backend->destroy_texture = vulkan_renderer_destroy_texture;
         out_backend->create_material = vulkan_renderer_create_material;
         out_backend->destroy_material = vulkan_renderer_destroy_material;
+        out_backend->begin_renderpass = vulkan_renderer_begin_renderpass;
+        out_backend->end_renderpass = vulkan_renderer_end_renderpass;
 
         return true;
     }
@@ -33,7 +36,8 @@ void renderer_backend_destroy(RendererBackend* backend)
     backend->resize = 0;
     backend->begin_frame = 0;
     backend->end_frame = 0;
-    backend->update_global_uniform = 0;
+    backend->update_global_world_uniform = 0;
+    backend->update_global_ui_uniform = 0;
     backend->create_geometry = 0;
     backend->draw_geometry = 0;
     backend->destroy_geometry = 0;
@@ -41,4 +45,6 @@ void renderer_backend_destroy(RendererBackend* backend)
     backend->destroy_texture = 0;
     backend->create_material = 0;
     backend->destroy_material = 0;
+    backend->begin_renderpass = 0;
+    backend->end_renderpass = 0;
 }

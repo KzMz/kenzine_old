@@ -2,43 +2,46 @@
 #include "core/memory.h"
 
 void vulkan_renderpass_create(VulkanContext* context, VulkanRenderPass* out_render_pass,
-                              f32 x, f32 y, f32 w, f32 h,
-                              f32 r, f32 g, f32 b, f32 a,
+                              Vec4 render_area,
+                              Vec4 clear_color,
                               f32 depth,
-                              u32 stencil)
+                              u32 stencil,
+                              u8 clear_flags,
+                              bool has_prev_pass,
+                              bool has_next_pass)
 {
-    out_render_pass->x = x;
-    out_render_pass->y = y;
-    out_render_pass->w = w;
-    out_render_pass->h = h;
-
-    out_render_pass->r = r;
-    out_render_pass->g = g;
-    out_render_pass->b = b;
-    out_render_pass->a = a;
+    out_render_pass->render_area = render_area;
+    out_render_pass->clear_color = clear_color;
 
     out_render_pass->depth = depth;
     out_render_pass->stencil = stencil;
+
+    out_render_pass->clear_flags = clear_flags;
+    out_render_pass->has_prev_pass = has_prev_pass;
+    out_render_pass->has_next_pass = has_next_pass;
 
     // Main subpass
     VkSubpassDescription subpass = {0};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
-    const u32 attachment_count = 2;
-    VkAttachmentDescription attachments[attachment_count];
+    u32 attachment_count = 0;
+    VkAttachmentDescription attachments[2];
+
+    bool should_clear_color = (clear_flags & RENDERPASS_CLEAR_COLOR_BUFFER_FLAG) != 0;
 
     VkAttachmentDescription color_attachment = {0};
     color_attachment.format = context->swapchain.image_format.format;
     color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_attachment.loadOp = should_clear_color ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
     color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    color_attachment.initialLayout = has_prev_pass ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+    color_attachment.finalLayout = has_next_pass ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     color_attachment.flags = 0;
 
-    attachments[0] = color_attachment;
+    attachments[attachment_count] = color_attachment;
+    attachment_count++;
 
     VkAttachmentReference color_attachment_ref = {0};
     color_attachment_ref.attachment = 0;
@@ -47,23 +50,33 @@ void vulkan_renderpass_create(VulkanContext* context, VulkanRenderPass* out_rend
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &color_attachment_ref;
 
-    VkAttachmentDescription depth_attachment = {0};
-    depth_attachment.format = context->device.depth_format;
-    depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    bool should_clear_depth = (clear_flags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG) != 0;
+    if (should_clear_depth)
+    {
+        VkAttachmentDescription depth_attachment = {0};
+        depth_attachment.format = context->device.depth_format;
+        depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_attachment.loadOp = should_clear_depth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+        depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    attachments[1] = depth_attachment;
+        attachments[attachment_count] = depth_attachment;
+        attachment_count++;
 
-    VkAttachmentReference depth_attachment_ref = {0};
-    depth_attachment_ref.attachment = 1;
-    depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        VkAttachmentReference depth_attachment_ref = {0};
+        depth_attachment_ref.attachment = 1;
+        depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    subpass.pDepthStencilAttachment = &depth_attachment_ref;
+        subpass.pDepthStencilAttachment = &depth_attachment_ref;
+    } 
+    else
+    {
+        memory_zero(&attachments[attachment_count], sizeof(VkAttachmentDescription));
+        subpass.pDepthStencilAttachment = NULL;
+    }
 
     subpass.inputAttachmentCount = 0;
     subpass.pInputAttachments = NULL;
@@ -111,28 +124,36 @@ void vulkan_renderpass_begin(VulkanCommandBuffer* command_buffer, VulkanRenderPa
     VkRenderPassBeginInfo render_pass_info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
     render_pass_info.renderPass = render_pass->render_pass;
     render_pass_info.framebuffer = frame_buffer;
-    render_pass_info.renderArea.offset.x = (i32) render_pass->x;
-    render_pass_info.renderArea.offset.y = (i32) render_pass->y;
-    render_pass_info.renderArea.extent.width = (u32) render_pass->w;
-    render_pass_info.renderArea.extent.height = (u32) render_pass->h;
+    render_pass_info.renderArea.offset.x = (i32) render_pass->render_area.x;
+    render_pass_info.renderArea.offset.y = (i32) render_pass->render_area.y;
+    render_pass_info.renderArea.extent.width = (u32) render_pass->render_area.z;
+    render_pass_info.renderArea.extent.height = (u32) render_pass->render_area.w;
+
+    render_pass_info.clearValueCount = 0;
+    render_pass_info.pClearValues = NULL;
 
     VkClearValue clear_values[2];
     memory_zero(clear_values, sizeof(VkClearValue) * 2);
-    clear_values[0].color = (VkClearColorValue) {
-        .float32 = {
-            render_pass->r, 
-            render_pass->g, 
-            render_pass->b, 
-            render_pass->a
-        }
-    };
-    clear_values[1].depthStencil = (VkClearDepthStencilValue) {
-        .depth = render_pass->depth,
-        .stencil = render_pass->stencil
-    };
 
-    render_pass_info.clearValueCount = 2;
-    render_pass_info.pClearValues = clear_values;
+    bool should_clear_color = (render_pass->clear_flags & RENDERPASS_CLEAR_COLOR_BUFFER_FLAG) != 0;
+    if (should_clear_color)
+    {
+        memory_copy(clear_values[render_pass_info.clearValueCount].color.float32, render_pass->clear_color.elements, sizeof(f32) * 4);
+        render_pass_info.clearValueCount++;
+    }
+
+    bool should_clear_depth = (render_pass->clear_flags & RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG) != 0;
+    if (should_clear_depth)
+    {
+        memory_copy(clear_values[render_pass_info.clearValueCount].color.float32, &render_pass->clear_color.elements, sizeof(f32) * 4);
+        clear_values[render_pass_info.clearValueCount].depthStencil.depth = render_pass->depth;
+
+        bool should_clear_stencil = (render_pass->clear_flags & RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG) != 0;
+        clear_values[render_pass_info.clearValueCount].depthStencil.stencil = should_clear_stencil ? render_pass->stencil : 0;
+        render_pass_info.clearValueCount++;
+    }
+
+    render_pass_info.pClearValues = render_pass_info.clearValueCount > 0 ? clear_values : NULL;
 
     vkCmdBeginRenderPass(command_buffer->command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
     command_buffer->state = VULKAN_COMMAND_BUFFER_STATE_IN_RENDER_PASS;

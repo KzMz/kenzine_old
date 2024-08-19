@@ -13,13 +13,13 @@
 #include "vulkan_swapchain.h"
 #include "vulkan_renderpass.h"
 #include "vulkan_command_buffer.h"
-#include "vulkan_framebuffer.h"
-#include "vulkan_fence.h"
 #include "vulkan_utils.h"
 #include "vulkan_buffer.h"
 #include "vulkan_image.h"
 
 #include "shaders/vulkan_material_shader.h"
+#include "shaders/vulkan_ui_shader.h"
+
 #include "systems/material_system.h"
 
 #define MIN_FRAMEBUFFER_WIDTH 800
@@ -43,8 +43,8 @@ void destroy_buffers(VulkanContext* context);
 void create_command_buffers(RendererBackend* backend);
 void destroy_command_buffers(RendererBackend* backend);
 
-void regenerate_framebuffers(RendererBackend* backend, VulkanSwapchain* swapchain, VulkanRenderPass* render_pass);
-void destroy_framebuffers(RendererBackend* backend, VulkanSwapchain* swapchain);
+void regenerate_framebuffers(void);
+void destroy_framebuffers(void);
 
 void create_sync_objects(RendererBackend* backend);
 void destroy_sync_objects(RendererBackend* backend);
@@ -171,15 +171,29 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
 
     vulkan_swapchain_create(&context, context.framebuffer_width, context.framebuffer_height, &context.swapchain);
 
+    // World render pass
     vulkan_renderpass_create(
         &context, &context.main_render_pass,
-        0, 0, context.framebuffer_width, context.framebuffer_height,
-        0.0f, 0.0f, 0.2f, 1.0f,
+        (Vec4) { 0, 0, context.framebuffer_width, context.framebuffer_height },
+        (Vec4) { 0.0f, 0.0f, 0.2f, 1.0f },
         1.0f,
-        0);
+        0,
+        RENDERPASS_CLEAR_STENCIL_BUFFER_FLAG | RENDERPASS_CLEAR_COLOR_BUFFER_FLAG | RENDERPASS_CLEAR_DEPTH_BUFFER_FLAG,
+        false, true
+    );
 
-    context.swapchain.framebuffers = dynarray_reserve(VulkanFramebuffer, context.swapchain.image_count);
-    regenerate_framebuffers(backend, &context.swapchain, &context.main_render_pass);
+    // UI render pass
+    vulkan_renderpass_create(
+        &context, &context.ui_render_pass,
+        (Vec4) { 0, 0, context.framebuffer_width, context.framebuffer_height },
+        (Vec4) { 0.0f, 0.0f, 0.0f, 0.0f },
+        1.0f,
+        0,
+        RENDERPASS_CLEAR_NONE_FLAG,
+        true, false
+    );
+
+    regenerate_framebuffers();
 
     create_command_buffers(backend);
 
@@ -188,6 +202,11 @@ bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name
     if (!vulkan_material_shader_create(&context, &context.material_shader))
     {
         log_fatal("Failed to create object shader.");
+        return false;
+    }
+    if (!vulkan_ui_shader_create(&context, &context.ui_shader))
+    {
+        log_fatal("Failed to create UI shader.");
         return false;
     }
 
@@ -208,14 +227,16 @@ void vulkan_renderer_backend_shutdown(RendererBackend* backend)
 
     destroy_buffers(&context);
 
+    vulkan_ui_shader_destroy(&context, &context.ui_shader);
     vulkan_material_shader_destroy(&context, &context.material_shader);
 
     destroy_sync_objects(backend);
 
     destroy_command_buffers(backend);
 
-    destroy_framebuffers(backend, &context.swapchain);
+    destroy_framebuffers();
 
+    vulkan_renderpass_destroy(&context, &context.ui_render_pass);
     vulkan_renderpass_destroy(&context, &context.main_render_pass);
 
     vulkan_swapchain_destroy(&context, &context.swapchain);
@@ -280,9 +301,10 @@ bool vulkan_renderer_backend_begin_frame(RendererBackend* backend, f64 delta_tim
         return false;
     }
 
-    if (!vulkan_fence_wait(&context, &context.in_flight_fences[context.current_frame], 0xffffffffffffffff))
+    VkResult result = vkWaitForFences(device->logical_device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, 0xffffffffffffffff);
+    if (!vulkan_result_is_successful(result))
     {
-        log_warning("Failed to wait for in flight fence.");
+        log_warning("Failed to wait for in flight fence. %s", vulkan_result_string(result, true));
         return false;
     }
 
@@ -314,10 +336,8 @@ bool vulkan_renderer_backend_begin_frame(RendererBackend* backend, f64 delta_tim
     vkCmdSetViewport(command_buffer->command_buffer, 0, 1, &viewport);
     vkCmdSetScissor(command_buffer->command_buffer, 0, 1, &scissor);
 
-    context.main_render_pass.w = context.framebuffer_width;
-    context.main_render_pass.h = context.framebuffer_height;
-
-    vulkan_renderpass_begin(command_buffer, &context.main_render_pass, context.swapchain.framebuffers[context.image_index].framebuffer);
+    context.main_render_pass.render_area.z = context.framebuffer_width;
+    context.main_render_pass.render_area.w = context.framebuffer_height;
 
     return true;
 }
@@ -325,16 +345,21 @@ bool vulkan_renderer_backend_begin_frame(RendererBackend* backend, f64 delta_tim
 bool vulkan_renderer_backend_end_frame(RendererBackend* backend, f64 delta_time)
 {
     VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
-    vulkan_renderpass_end(command_buffer, &context.main_render_pass);
     vulkan_command_buffer_end(command_buffer);
 
     if (context.images_in_flight[context.image_index] != VK_NULL_HANDLE)
     {
-        vulkan_fence_wait(&context, context.images_in_flight[context.image_index], 0xffffffffffffffff);
+        VkResult result = vkWaitForFences(context.device.logical_device, 1, context.images_in_flight[context.image_index], VK_TRUE, 0xffffffffffffffff);
+        if (!vulkan_result_is_successful(result))
+        {
+            log_error("Failed to wait for in flight fence. %s", vulkan_result_string(result, true));
+            return false;
+        }
     }
 
     context.images_in_flight[context.image_index] = &context.in_flight_fences[context.current_frame];
-    vulkan_fence_reset(&context, &context.in_flight_fences[context.current_frame]);
+
+    VK_ASSERT(vkResetFences(context.device.logical_device, 1, &context.in_flight_fences[context.current_frame]));
 
     VkSubmitInfo submit_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submit_info.commandBufferCount = 1;
@@ -347,7 +372,7 @@ bool vulkan_renderer_backend_end_frame(RendererBackend* backend, f64 delta_time)
     VkPipelineStageFlags flags[1] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submit_info.pWaitDstStageMask = flags;
 
-    VkResult result = vkQueueSubmit(context.device.graphics_queue, 1, &submit_info, context.in_flight_fences[context.current_frame].fence);
+    VkResult result = vkQueueSubmit(context.device.graphics_queue, 1, &submit_info, context.in_flight_fences[context.current_frame]);
     if (!vulkan_result_is_successful(result))
     {
         log_error("Failed to submit command buffer to queue. %s", vulkan_result_string(result, true));
@@ -365,7 +390,65 @@ bool vulkan_renderer_backend_end_frame(RendererBackend* backend, f64 delta_time)
     return true;
 }
 
-void vulkan_renderer_update_global_uniform(Mat4 projection, Mat4 view, Vec3 view_positioni, Vec4 ambient_color, i32 mode)
+bool vulkan_renderer_begin_renderpass(RendererBackend* backend, u8 renderpass_id)
+{
+    VulkanRenderPass* render_pass = NULL;
+    VkFramebuffer framebuffer = VK_NULL_HANDLE;
+    VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
+
+    switch (renderpass_id)
+    {
+        case BUILTIN_RENDERPASS_WORLD:
+            render_pass = &context.main_render_pass;
+            framebuffer = context.world_framebuffers[context.image_index];
+            break;
+        case BUILTIN_RENDERPASS_UI:
+            render_pass = &context.ui_render_pass;
+            framebuffer = context.swapchain.framebuffers[context.image_index];
+            break;
+        default:
+            log_error("Invalid renderpass id. [Id: %d]", renderpass_id);
+            return false;
+    }
+
+    vulkan_renderpass_begin(command_buffer, render_pass, framebuffer);
+
+    switch (renderpass_id)
+    {
+        case BUILTIN_RENDERPASS_WORLD:
+            vulkan_material_shader_use(&context, &context.material_shader);
+            break;
+        case BUILTIN_RENDERPASS_UI:
+            vulkan_ui_shader_use(&context, &context.ui_shader);
+            break;
+    }
+
+    return true;
+}
+
+bool vulkan_renderer_end_renderpass(RendererBackend* backend, u8 renderpass_id)
+{
+    VulkanRenderPass* render_pass = NULL;
+    VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
+
+    switch (renderpass_id)
+    {
+        case BUILTIN_RENDERPASS_WORLD:
+            render_pass = &context.main_render_pass;
+            break;
+        case BUILTIN_RENDERPASS_UI:
+            render_pass = &context.ui_render_pass;
+            break;
+        default:
+            log_error("Invalid renderpass id. [Id: %d]", renderpass_id);
+            return false;
+    }
+
+    vulkan_renderpass_end(command_buffer, render_pass);
+    return true;
+}
+
+void vulkan_renderer_update_global_world_uniform(Mat4 projection, Mat4 view, Vec3 view_positioni, Vec4 ambient_color, i32 mode)
 {
     VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
     vulkan_material_shader_use(&context, &context.material_shader);
@@ -374,6 +457,17 @@ void vulkan_renderer_update_global_uniform(Mat4 projection, Mat4 view, Vec3 view
     context.material_shader.global_uniform.view = view;
 
     vulkan_material_shader_update_global_uniform(&context, &context.material_shader, context.frame_delta_time);
+}
+
+void vulkan_renderer_update_global_ui_uniform(Mat4 projection, Mat4 view, i32 mode)
+{
+    VulkanCommandBuffer* command_buffer = &context.graphics_command_buffers[context.image_index];
+    vulkan_ui_shader_use(&context, &context.ui_shader);
+
+    context.ui_shader.global_uniform.projection = projection;
+    context.ui_shader.global_uniform.view = view;
+
+    vulkan_ui_shader_update_global_uniform(&context, &context.ui_shader, context.frame_delta_time);
 }
 
 bool vulkan_renderer_create_geometry(Geometry* geometry, u32 vertex_count, const Vertex3d* vertices, u32 index_count, const u32* indices)
@@ -704,31 +798,42 @@ void destroy_command_buffers(RendererBackend* backend)
     context.graphics_command_buffers = NULL;
 }
 
-void regenerate_framebuffers(RendererBackend* backend, VulkanSwapchain* swapchain, VulkanRenderPass* render_pass)
+void regenerate_framebuffers(void)
 {
-    for (u32 i = 0; i < swapchain->image_count; ++i)
+    u32 image_count = context.swapchain.image_count;
+    for (u32 i = 0; i < image_count; ++i)
     {
-        if (swapchain->framebuffers[i].framebuffer)
-        {
-            vulkan_framebuffer_destroy(&context, &swapchain->framebuffers[i]);
-        }
+        VkImageView world_attachments[2] = {context.swapchain.image_views[i], context.swapchain.depth_attachment.view};
+        VkFramebufferCreateInfo framebuffer_create_info = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
+        framebuffer_create_info.renderPass = context.main_render_pass.render_pass;
+        framebuffer_create_info.attachmentCount = 2;
+        framebuffer_create_info.pAttachments = world_attachments;
+        framebuffer_create_info.width = context.framebuffer_width;
+        framebuffer_create_info.height = context.framebuffer_height;
+        framebuffer_create_info.layers = 1;
 
-        u32 attachment_count = 2;
-        VkImageView attachments[2] = {swapchain->image_views[i], swapchain->depth_attachment.view};
+        VK_ASSERT(vkCreateFramebuffer(context.device.logical_device, &framebuffer_create_info, context.allocator, &context.world_framebuffers[i]));
 
-        vulkan_framebuffer_create(
-            &context, render_pass,
-            context.framebuffer_width, context.framebuffer_height,
-            attachment_count, attachments,
-            &swapchain->framebuffers[i]);
+        VkImageView ui_attachments[1] = {context.swapchain.image_views[i]};
+        VkFramebufferCreateInfo ui_framebuffer_create_info = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
+        ui_framebuffer_create_info.renderPass = context.ui_render_pass.render_pass;
+        ui_framebuffer_create_info.attachmentCount = 1;
+        ui_framebuffer_create_info.pAttachments = ui_attachments;
+        ui_framebuffer_create_info.width = context.framebuffer_width;
+        ui_framebuffer_create_info.height = context.framebuffer_height;
+        ui_framebuffer_create_info.layers = 1;
+
+        VK_ASSERT(vkCreateFramebuffer(context.device.logical_device, &ui_framebuffer_create_info, context.allocator, &context.swapchain.framebuffers[i]));
     }
 }
 
-void destroy_framebuffers(RendererBackend* backend, VulkanSwapchain* swapchain)
+void destroy_framebuffers(void)
 {
-    for (u32 i = 0; i < swapchain->image_count; ++i)
+    u32 image_count = context.swapchain.image_count;
+    for (u32 i = 0; i < image_count; ++i)
     {
-        vulkan_framebuffer_destroy(&context, &swapchain->framebuffers[i]);
+        vkDestroyFramebuffer(context.device.logical_device, context.world_framebuffers[i], context.allocator);
+        vkDestroyFramebuffer(context.device.logical_device, context.swapchain.framebuffers[i], context.allocator);
     }
 }
 
@@ -736,7 +841,8 @@ void create_sync_objects(RendererBackend* backend)
 {
     context.image_available_semaphores = dynarray_reserve(VkSemaphore, context.swapchain.max_frames_in_flight);
     context.queue_complete_semaphores = dynarray_reserve(VkSemaphore, context.swapchain.max_frames_in_flight);
-    context.in_flight_fences = dynarray_reserve(VulkanFence, context.swapchain.max_frames_in_flight);
+
+    memory_zero(context.in_flight_fences, sizeof(VkFence) * 2);
 
     for (u8 i = 0; i < context.swapchain.max_frames_in_flight; ++i)
     {
@@ -744,11 +850,11 @@ void create_sync_objects(RendererBackend* backend)
         VK_ASSERT(vkCreateSemaphore(context.device.logical_device, &semaphore_create_info, context.allocator, &context.image_available_semaphores[i]));
         VK_ASSERT(vkCreateSemaphore(context.device.logical_device, &semaphore_create_info, context.allocator, &context.queue_complete_semaphores[i]));
 
-        vulkan_fence_create(&context, true, &context.in_flight_fences[i]);
+        VkFenceCreateInfo fence_create_info = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+        fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        VK_ASSERT(vkCreateFence(context.device.logical_device, &fence_create_info, context.allocator, &context.in_flight_fences[i]));
     }
 
-    // check if we need VulkanFence* here
-    context.images_in_flight = dynarray_reserve(VulkanFence, context.swapchain.image_count);
     for (u32 i = 0; i < context.swapchain.image_count; ++i)
     {
         context.images_in_flight[i] = NULL;
@@ -769,7 +875,7 @@ void destroy_sync_objects(RendererBackend* backend)
             vkDestroySemaphore(context.device.logical_device, context.queue_complete_semaphores[i], context.allocator);
         }
 
-        vulkan_fence_destroy(&context, &context.in_flight_fences[i]);
+        vkDestroyFence(context.device.logical_device, context.in_flight_fences[i], context.allocator);
     }
 
     dynarray_destroy(context.image_available_semaphores);
@@ -777,12 +883,6 @@ void destroy_sync_objects(RendererBackend* backend)
 
     dynarray_destroy(context.queue_complete_semaphores);
     context.queue_complete_semaphores = NULL;
-
-    dynarray_destroy(context.in_flight_fences);
-    context.in_flight_fences = NULL;
-
-    dynarray_destroy(context.images_in_flight);
-    context.images_in_flight = NULL;
 }
 
 bool recreate_swapchain(RendererBackend* backend)
@@ -815,8 +915,6 @@ bool recreate_swapchain(RendererBackend* backend)
 
     context.framebuffer_width = raw_framebuffer_width;
     context.framebuffer_height = raw_framebuffer_height;
-    context.main_render_pass.w = context.framebuffer_width;
-    context.main_render_pass.h = context.framebuffer_height;
     raw_framebuffer_width = 0;
     raw_framebuffer_height = 0;
 
@@ -827,12 +925,12 @@ bool recreate_swapchain(RendererBackend* backend)
         vulkan_command_buffer_free(&context, context.device.graphics_command_pool, &context.graphics_command_buffers[i]);
     }
 
-    context.main_render_pass.x = 0;
-    context.main_render_pass.y = 0;
-    context.main_render_pass.w = context.framebuffer_width;
-    context.main_render_pass.h = context.framebuffer_height;
+    destroy_framebuffers();
+    
+    context.main_render_pass.render_area = (Vec4) { 0, 0, context.framebuffer_width, context.framebuffer_height };
+    context.ui_render_pass.render_area = (Vec4) { 0, 0, context.framebuffer_width, context.framebuffer_height };
 
-    regenerate_framebuffers(backend, &context.swapchain, &context.main_render_pass);
+    regenerate_framebuffers();
     create_command_buffers(backend);
 
     context.recreating_swapchain = false;

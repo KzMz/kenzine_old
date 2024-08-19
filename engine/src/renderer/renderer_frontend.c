@@ -21,6 +21,8 @@ typedef struct RendererState
     RendererBackend* backend;
     Mat4 projection;
     Mat4 view;
+    Mat4 ui_projection;
+    Mat4 ui_view;
     f32 near_clip;
     f32 far_clip;
 } RendererState;
@@ -48,6 +50,9 @@ bool renderer_init(void* state, const char* app_name)
     Mat4 view = mat4_translation((Vec3) { 0, 0, 30 });
     renderer_state->view = mat4_inverse(view);
 
+    renderer_state->ui_projection = mat4_proj_orthographic(0, 1280.0f, 720.0f, 0, -100.0f, 100.0f);
+    renderer_state->ui_view = mat4_inverse(mat4_identity());
+
     return true;
 }
 
@@ -65,23 +70,17 @@ void renderer_shutdown(void)
     memory_free(renderer_state->backend, sizeof(RendererBackend), MEMORY_TAG_RENDERER);
 }
 
-bool renderer_begin_frame(f64 delta_time)
-{
-    return renderer_state->backend->begin_frame(renderer_state->backend, delta_time);
-}
-
-bool renderer_end_frame(f64 delta_time)
-{
-    bool result = renderer_state->backend->end_frame(renderer_state->backend, delta_time);
-    renderer_state->backend->frame_number++;
-    return result;
-}
-
 bool renderer_draw_frame(RenderPacket* packet)
 {
-    if (renderer_begin_frame(packet->delta_time))
+    if (renderer_state->backend->begin_frame(renderer_state->backend, packet->delta_time))
     {
-        renderer_state->backend->update_global_uniform(renderer_state->projection, renderer_state->view, vec3_zero(), vec4_one(), 0);
+        if (!renderer_state->backend->begin_renderpass(renderer_state->backend, BUILTIN_RENDERPASS_WORLD))
+        {
+            log_error("Failed to begin world renderpass. Shutting down...");
+            return false;
+        }
+
+        renderer_state->backend->update_global_world_uniform(renderer_state->projection, renderer_state->view, vec3_zero(), vec4_one(), 0);
 
         u32 count = packet->geometry_count;
         for (u32 i = 0; i < count; i++)
@@ -89,7 +88,33 @@ bool renderer_draw_frame(RenderPacket* packet)
             renderer_state->backend->draw_geometry(packet->geometries[i]);
         }
 
-        bool result = renderer_end_frame(packet->delta_time);
+        if (!renderer_state->backend->end_renderpass(renderer_state->backend, BUILTIN_RENDERPASS_WORLD))
+        {
+            log_error("Failed to end world renderpass. Shutting down...");
+            return false;
+        }
+
+        if (!renderer_state->backend->begin_renderpass(renderer_state->backend, BUILTIN_RENDERPASS_UI))
+        {
+            log_error("Failed to begin ui renderpass. Shutting down...");
+            return false;
+        }
+
+        renderer_state->backend->update_global_ui_uniform(renderer_state->ui_projection, renderer_state->ui_view, 0);
+
+        count = packet->ui_geometry_count;
+        for (u32 i = 0; i < count; i++)
+        {
+            renderer_state->backend->draw_geometry(packet->ui_geometries[i]);
+        }
+
+        if (!renderer_state->backend->end_renderpass(renderer_state->backend, BUILTIN_RENDERPASS_UI))
+        {
+            log_error("Failed to end ui renderpass. Shutting down...");
+            return false;
+        }
+
+        bool result = renderer_state->backend->end_frame(renderer_state->backend, packet->delta_time);
         if (!result) 
         {
             log_error("Failed to end draw frame. Shutting down...");
@@ -109,6 +134,7 @@ void renderer_resize(i32 width, i32 height)
     }
 
     renderer_state->projection = mat4_proj_perspective(deg_to_rad(45.0f), width / (f32) height, renderer_state->near_clip, renderer_state->far_clip);
+    renderer_state->ui_projection = mat4_proj_orthographic(0, width, height, 0, -100.0f, 100.0f);
 
     if (renderer_state->backend)
     {

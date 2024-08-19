@@ -4,14 +4,22 @@
 #include <vulkan/vulkan.h>
 #include "core/asserts.h"
 #include "renderer/renderer_defines.h"
+#include "lib/math/math_defines.h"
 
 #define MAX_INDICES 32
 #define MAX_PHYSICAL_DEVICES 32
 #define MAX_QUEUE_FAMILIES 32
+
 #define MATERIAL_SHADER_STAGE_COUNT 2
 #define MAX_MATERIAL_COUNT 1024
 #define MATERIAL_SHADER_DESCRIPTOR_COUNT 2
 #define MATERIAL_SHADER_SAMPLER_COUNT 1
+
+#define UI_SHADER_STAGE_COUNT 2
+#define MAX_UI_COUNT 1024
+#define UI_SHADER_DESCRIPTOR_COUNT 2
+#define UI_SHADER_SAMPLER_COUNT 1
+
 #define MAX_GEOMETRY_COUNT 4096
 
 #define VK_ASSERT(expr) do { kz_assert((expr) == VK_SUCCESS); } while(0)
@@ -83,22 +91,18 @@ typedef enum VulkanRenderPassState
 typedef struct VulkanRenderPass
 {
     VkRenderPass render_pass;
-    f32 x, y, w, h;
-    f32 r, g, b, a;
+    Vec4 render_area;
+    Vec4 clear_color;
 
     f32 depth;
     u32 stencil;
 
+    u8 clear_flags;
+    bool has_prev_pass;
+    bool has_next_pass;
+
     VulkanRenderPassState state;
 } VulkanRenderPass;
-
-typedef struct VulkanFramebuffer
-{
-    VkFramebuffer framebuffer;
-    u32 attachment_count;
-    VkImageView* attachments;
-    VulkanRenderPass* render_pass;
-} VulkanFramebuffer;
 
 typedef struct VulkanSwapchain
 {
@@ -111,7 +115,7 @@ typedef struct VulkanSwapchain
 
     VulkanImage depth_attachment;
 
-    VulkanFramebuffer* framebuffers;
+    VkFramebuffer framebuffers[3];
 } VulkanSwapchain;
 
 typedef enum VulkanCommandBufferState
@@ -129,12 +133,6 @@ typedef struct VulkanCommandBuffer
     VkCommandBuffer command_buffer;
     VulkanCommandBufferState state;
 } VulkanCommandBuffer;
-
-typedef struct VulkanFence
-{
-    VkFence fence;
-    bool signaled;
-} VulkanFence;
 
 typedef struct VulkanShaderStage
 {
@@ -179,6 +177,22 @@ typedef struct VulkanGeometryData
     u64 index_buffer_offset;
 } VulkanGeometryData;
 
+typedef struct VulkanMaterial_GlobalUniform
+{
+    Mat4 projection;
+    Mat4 view;
+    Mat4 reserved0;
+    Mat4 reserved1;
+} VulkanMaterial_GlobalUniform;
+
+typedef struct VulkanMaterial_InstanceUniform
+{
+    Vec4 diffuse_color;
+    Vec4 reserved0;
+    Vec4 reserved1;
+    Vec4 reserved2;
+} VulkanMaterial_InstanceUniform;
+
 typedef struct VulkanMaterialShader
 {
     VulkanShaderStage stages[MATERIAL_SHADER_STAGE_COUNT];
@@ -189,7 +203,7 @@ typedef struct VulkanMaterialShader
 
     VkDescriptorSet global_descriptor_set[3];
 
-    GlobalUniform global_uniform;
+    VulkanMaterial_GlobalUniform global_uniform;
     VulkanBuffer global_uniform_buffer;
 
     VkDescriptorPool local_descriptor_pool;
@@ -201,6 +215,54 @@ typedef struct VulkanMaterialShader
 
     TextureUsage sampler_uses[MATERIAL_SHADER_SAMPLER_COUNT];
 } VulkanMaterialShader;
+
+typedef struct VulkanUIShaderInstanceState
+{
+    // Per frame
+    VkDescriptorSet descriptor_sets[3];
+
+    // Per descriptor
+    VulkanDescriptorState descriptor_states[UI_SHADER_DESCRIPTOR_COUNT];
+} VulkanUIShaderInstanceState;
+
+typedef struct VulkanUI_GlobalUniform
+{
+    Mat4 projection;
+    Mat4 view;
+    Mat4 reserved0;
+    Mat4 reserved1;
+}  VulkanUI_GlobalUniform;
+
+typedef struct VulkanUI_InstanceUniform
+{
+    Vec4 diffuse_color;
+    Vec4 reserved0;
+    Vec4 reserved1;
+    Vec4 reserved2;
+} VulkanUI_InstanceUniform;
+
+typedef struct VulkanUIShader
+{
+    VulkanShaderStage stages[UI_SHADER_STAGE_COUNT];
+    VulkanPipeline pipeline;
+
+    VkDescriptorPool global_descriptor_pool;
+    VkDescriptorSetLayout global_descriptor_set_layout;
+
+    VkDescriptorSet global_descriptor_set[3];
+
+    VulkanUI_GlobalUniform global_uniform;
+    VulkanBuffer global_uniform_buffer;
+
+    VkDescriptorPool local_descriptor_pool;
+    VkDescriptorSetLayout local_descriptor_set_layout;
+    VulkanBuffer local_uniform_buffer;
+    u64 local_uniform_buffer_index;
+
+    VulkanUIShaderInstanceState instance_states[MAX_UI_COUNT];
+
+    TextureUsage sampler_uses[UI_SHADER_SAMPLER_COUNT];
+} VulkanUIShader;
 
 typedef i32 (*VulkanFindMemoryIndex)(u32 type_filter, u32 property_flags);
 
@@ -229,7 +291,10 @@ typedef struct VulkanContext
     bool recreating_swapchain;
 
     VulkanFindMemoryIndex find_memory_index;
+
     VulkanRenderPass main_render_pass;
+    VulkanRenderPass ui_render_pass;
+    
     VulkanCommandBuffer* graphics_command_buffers;
 
     VulkanBuffer obj_vertex_buffer;
@@ -239,15 +304,18 @@ typedef struct VulkanContext
     VkSemaphore* queue_complete_semaphores;
 
     u32 in_flight_fence_count;
-    VulkanFence* in_flight_fences;
-    VulkanFence** images_in_flight;
+    VkFence in_flight_fences[2];
+    VkFence* images_in_flight[3]; // One per frame
 
     VulkanMaterialShader material_shader;
+    VulkanUIShader ui_shader;
 
     u64 geometry_vertex_offset;
     u64 geometry_index_offset;
 
     VulkanGeometryData geometries[MAX_GEOMETRY_COUNT];
+
+    VkFramebuffer world_framebuffers[3]; // One per frame
 } VulkanContext;
 
 typedef struct VulkanTexture
