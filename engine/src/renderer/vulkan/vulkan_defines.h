@@ -191,6 +191,9 @@ typedef struct VulkanMaterial_InstanceUniform
     Vec4 reserved0;
     Vec4 reserved1;
     Vec4 reserved2;
+    Mat4 reserved3;
+    Mat4 reserved4;
+    Mat4 reserved5; // Needs to be padded to 256 bytes    
 } VulkanMaterial_InstanceUniform;
 
 typedef struct VulkanMaterialShader
@@ -239,6 +242,9 @@ typedef struct VulkanUI_InstanceUniform
     Vec4 reserved0;
     Vec4 reserved1;
     Vec4 reserved2;
+    Mat4 reserved3;
+    Mat4 reserved4;
+    Mat4 reserved5; // Needs to be padded to 256 bytes    
 } VulkanUI_InstanceUniform;
 
 typedef struct VulkanUIShader

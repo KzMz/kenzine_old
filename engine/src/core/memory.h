@@ -1,7 +1,7 @@
 #pragma once
 
 #include "defines.h"
-#include "lib/arena.h"
+#include "lib/memory/arena.h"
 
 typedef enum MemoryTag 
 {
@@ -15,6 +15,7 @@ typedef enum MemoryTag
     MEMORY_TAG_TEXTURE,
     MEMORY_TAG_GEOMETRY,
     MEMORY_TAG_HASHTABLE,
+    MEMORY_TAG_FREELIST,
     MEMORY_TAG_RESOURCESYSTEM,
     MEMORY_TAG_TEXTURESYSTEM,
     MEMORY_TAG_MATERIALSYSTEM,

@@ -1,5 +1,5 @@
 #include "memory_tests.h"
-#include <lib/arena.h> 
+#include <lib/memory/arena.h> 
 #include "../expect.h"
 #include "../test.h"
 
