@@ -8,6 +8,8 @@
 #define MATERIAL_NAME_MAX_LENGTH 256
 #define GEOMETRY_NAME_MAX_LENGTH 256
 
+#define MAX_IMAGE_PATH_LENGTH 512
+
 typedef enum ResourceType
 {
     RESOURCE_TYPE_TEXT,

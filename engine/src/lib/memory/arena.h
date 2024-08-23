@@ -3,8 +3,6 @@
 #include "defines.h"
 #include "platform/platform.h"
 
-#define REGION_DEFAULT_SIZE (10 * 1024)
-
 typedef struct Region 
 {
     struct Region *next;
@@ -29,3 +27,6 @@ KENZINE_API void* arena_alloc(Arena* arena, u64 size, bool aligned);
 KENZINE_API void arena_clear(Arena* arena);
 KENZINE_API u64 arena_get_size(Arena* arena);
 KENZINE_API u64 arena_get_max_size(Arena* arena);
+
+void arena_set_region_size(u64 size);
+KENZINE_API u64 arena_get_region_size(void);

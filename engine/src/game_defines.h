@@ -19,6 +19,7 @@ typedef struct Game
     GameShutdown shutdown;
 
     void* state;
+    u64 state_size;
 
     void* app_state;
 } Game;

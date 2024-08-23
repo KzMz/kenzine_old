@@ -2,6 +2,16 @@
 #include "core/log.h"
 #include "core/asserts.h"
 
+typedef struct ArenaState 
+{
+    u64 region_default_size;
+} ArenaState;
+
+static ArenaState arena_state = 
+{ 
+    .region_default_size = 10 * 1024
+};
+
 u64 get_region_size(u64 size, bool aligned);
 
 Region* region_create(u64 size, bool aligned)
@@ -29,9 +39,9 @@ u64 get_region_size(u64 size, bool aligned)
     u64 total_size = size;
     if (true)
     {
-        if (total_size % REGION_DEFAULT_SIZE != 0)
+        if (total_size % arena_state.region_default_size != 0)
         {
-            total_size = (total_size / REGION_DEFAULT_SIZE + 1) * REGION_DEFAULT_SIZE;
+            total_size = (total_size / arena_state.region_default_size + 1) * arena_state.region_default_size;
         }
     }
     return total_size;
@@ -42,7 +52,7 @@ void* arena_alloc(Arena* arena, u64 size, bool aligned)
     if (arena->last == NULL)
     {
         kz_assert(arena->first == NULL);
-        u64 region_size = size > REGION_DEFAULT_SIZE ? size : REGION_DEFAULT_SIZE;
+        u64 region_size = size > arena_state.region_default_size ? size : arena_state.region_default_size;
         arena->last = region_create(region_size, aligned);
         arena->last->aligned = aligned;
         arena->first = arena->last;
@@ -57,7 +67,7 @@ void* arena_alloc(Arena* arena, u64 size, bool aligned)
     if (arena->last->current_size + size > arena->last->max_size)
     {
         kz_assert(arena->last->next == NULL);
-        u64 region_size = size > REGION_DEFAULT_SIZE ? size : REGION_DEFAULT_SIZE;
+        u64 region_size = size > arena_state.region_default_size ? size : arena_state.region_default_size;
         arena->last->next = region_create(region_size, aligned);
         arena->last = arena->last->next;
         arena->last->aligned = aligned;
@@ -107,4 +117,14 @@ u64 arena_get_max_size(Arena* arena)
         region = region->next;
     }
     return size;
+}
+
+void arena_set_region_size(u64 size)
+{
+    arena_state.region_default_size = size;
+}
+
+u64 arena_get_region_size(void)
+{
+    return arena_state.region_default_size;
 }

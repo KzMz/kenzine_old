@@ -1,4 +1,4 @@
-#include "free_list.h"
+#include "freelist.h"
 
 #include "core/memory.h"
 #include "core/log.h"
@@ -58,6 +58,7 @@ bool freelist_alloc(FreeList* list, u64 size, u64* out_offset)
     }
 
     FreeListNode* node = list->head;
+
     while (node != NULL)
     {
         if (node->size == size)
@@ -87,7 +88,6 @@ bool freelist_alloc(FreeList* list, u64 size, u64* out_offset)
 
         node = node->next;
     }
-
     return false;
 }
 
@@ -99,86 +99,112 @@ bool freelist_free(FreeList* list, u64 size, u64 offset)
     }
 
     FreeListNode* node = list->head;
-    while (node != NULL)
+
+    if (node == NULL)
     {
-        if (node->offset == offset)
+        // List is full so we need to create a new node
+        FreeListNode* new_node = NULL;
+        for (u64 i = 0; i < list->capacity; i++)
         {
-            node->size += size;
-            
-            // Check to see if this overlaps with the next node, merging them in case
-            if (node->next != NULL && node->next->offset == node->offset + node->size)
+            if (list->nodes[i].offset == INVALID_ID)
             {
-                FreeListNode* next = node->next;
-                node->size += next->size;
-                node->next = next->next;
-                empty_node(list, next);
+                new_node = &list->nodes[i];
+                break;
             }
-            // If not, we are good
-            return true;
         }
-        else if (node->offset > offset)
+        
+        new_node->offset = offset;
+        new_node->size = size;
+        new_node->prev = NULL;
+        new_node->next = NULL;
+        list->head = new_node;
+        return true;
+    } 
+    else 
+    {
+        while (node != NULL)
         {
-            // we are over what we need so we create a new node
-            FreeListNode* new_node = NULL;
-            for (u64 i = 0; i < list->capacity; i++)
+            if (node->offset == offset)
             {
-                if (list->nodes[i].offset == INVALID_ID)
+                node->size += size;
+                
+                // Check to see if this overlaps with the next node, merging them in case
+                if (node->next != NULL && node->next->offset == node->offset + node->size)
                 {
-                    new_node = &list->nodes[i];
-                    break;
+                    FreeListNode* next = node->next;
+                    node->size += next->size;
+                    node->next = next->next;
+                    empty_node(list, next);
                 }
+                // If not, we are good
+                return true;
             }
-
-            if (new_node == NULL)
+            else if (node->offset > offset)
             {
-                log_error("FreeList: no more space for new node");
-                return false;
-            }
-
-            new_node->offset = offset;
-            new_node->size = size;
-
-            if (node->prev != NULL)
-            {
-                node->prev->next = new_node;
-                new_node->next = node;
-                new_node->prev = node->prev;
-                node->prev = new_node;
-            }
-            else 
-            {
-                new_node->next = node;
-                new_node->prev = NULL;
-                node->prev = new_node;
-                list->head = new_node;
-            }
-
-            // check next node to see if it can be merged
-            if (new_node->next != NULL && new_node->offset + new_node->size == new_node->next->offset)
-            {
-                new_node->size += new_node->next->size;
-                FreeListNode* to_empty = new_node->next;
-                new_node->next = to_empty->next;
-                empty_node(list, to_empty);
-            }
-
-            // check prev node to see if it can be merged
-            if (new_node->prev != NULL && new_node->prev->offset + new_node->prev->size == new_node->offset)
-            {
-                new_node->prev->size += new_node->size;
-                
-                FreeListNode* to_empty = new_node;
-                new_node->prev->next = to_empty->next;
-                
-                if (new_node->next != NULL)
+                // we are over what we need so we create a new node
+                FreeListNode* new_node = NULL;
+                for (u64 i = 0; i < list->capacity; i++)
                 {
-                    new_node->next->prev = new_node->prev;
+                    if (list->nodes[i].offset == INVALID_ID)
+                    {
+                        new_node = &list->nodes[i];
+                        break;
+                    }
                 }
 
-                empty_node(list, to_empty);
+                if (new_node == NULL)
+                {
+                    log_error("FreeList: no more space for new node");
+                    return false;
+                }
+
+                new_node->offset = offset;
+                new_node->size = size;
+
+                if (node->prev != NULL)
+                {
+                    node->prev->next = new_node;
+                    new_node->next = node;
+                    new_node->prev = node->prev;
+                    node->prev = new_node;
+                }
+                else 
+                {
+                    new_node->next = node;
+                    new_node->prev = NULL;
+                    node->prev = new_node;
+                    list->head = new_node;
+                }
+
+                // check next node to see if it can be merged
+                if (new_node->next != NULL && new_node->offset + new_node->size == new_node->next->offset)
+                {
+                    new_node->size += new_node->next->size;
+                    FreeListNode* to_empty = new_node->next;
+                    new_node->next = to_empty->next;
+                    empty_node(list, to_empty);
+                }
+
+                // check prev node to see if it can be merged
+                if (new_node->prev != NULL && new_node->prev->offset + new_node->prev->size == new_node->offset)
+                {
+                    new_node->prev->size += new_node->size;
+                    
+                    FreeListNode* to_empty = new_node;
+                    new_node->prev->next = to_empty->next;
+                    
+                    if (new_node->next != NULL)
+                    {
+                        new_node->next->prev = new_node->prev;
+                    }
+
+                    empty_node(list, to_empty);
+                }
+
+                return true;
             }
 
-            return true;
+            node = node->next;
         }
     }
 

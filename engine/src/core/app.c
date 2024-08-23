@@ -74,6 +74,15 @@ KENZINE_API bool app_init(Game* game)
         return false;
     }
 
+    MemorySystemConfiguration config = {0};
+    config.arena_region_size = 10 * 1024;
+    config.dynamic_allocator_size = 0;
+    config.allocation_type = MEMORY_ALLOCATION_TYPE_ARENA;
+    // Initialize memory system
+    memory_init(config);
+
+    game->state = memory_alloc(game->state_size, MEMORY_TAG_GAME);
+
     game->app_state = memory_alloc(sizeof(AppState), MEMORY_TAG_APP);
     app_state = game->app_state;
     app_state->game = game;
@@ -345,6 +354,8 @@ KENZINE_API void app_shutdown(void)
     platform_shutdown();
     
     log_shutdown();
+
+    memory_shutdown();
 }
 
 bool app_on_event(u16 code, void* sender, void* listener, EventContext context)

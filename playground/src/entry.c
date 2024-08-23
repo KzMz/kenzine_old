@@ -17,7 +17,8 @@ bool game_create(Game* game)
     game->resize = game_resize;
     game->shutdown = game_shutdown;
 
-    game->state = memory_alloc(sizeof(GameState), MEMORY_TAG_GAME);
+    game->state = NULL;
+    game->state_size = sizeof(GameState);
     game->app_state = NULL;
     return true;
 }

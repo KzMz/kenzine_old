@@ -1,6 +1,6 @@
 #include "freelist_tests.h"
 
-#include <lib/memory/free_list.h>
+#include <lib/memory/freelist.h>
 #include "../test.h"
 #include "../expect.h"
 #include <core/memory.h>

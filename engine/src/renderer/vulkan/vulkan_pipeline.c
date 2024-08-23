@@ -78,11 +78,10 @@ bool vulkan_pipeline_create(
     color_blend_state.attachmentCount = 1;
     color_blend_state.pAttachments = &color_blend_attachment;
 
-    const u32 dynamic_state_count = 3;
-    VkDynamicState dynamic_states[dynamic_state_count] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
+    VkDynamicState dynamic_states[DYNAMIC_STATE_COUNT] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
 
     VkPipelineDynamicStateCreateInfo dynamic_state = {VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
-    dynamic_state.dynamicStateCount = dynamic_state_count;
+    dynamic_state.dynamicStateCount = DYNAMIC_STATE_COUNT;
     dynamic_state.pDynamicStates = dynamic_states;
 
     VkVertexInputBindingDescription binding_description = {0};

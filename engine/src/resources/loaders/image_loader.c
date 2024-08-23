@@ -22,8 +22,7 @@ bool image_loader_load(ResourceLoader* self, const char* name, Resource* out_res
 
     stbi_set_flip_vertically_on_load(true);
 
-    const i32 max_path_length = 512;
-    char path[max_path_length];
+    char path[MAX_IMAGE_PATH_LENGTH];
     string_format(path, format_str, resource_system_get_asset_base_path(), self->type_path, name, ".png");
 
     i32 width, height, channel_count;

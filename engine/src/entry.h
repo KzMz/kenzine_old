@@ -11,9 +11,6 @@ extern bool game_create(Game* game);
 
 int main(void)
 {
-    // Initialize memory system
-    memory_init();
-
     // Request game instance
     Game game = {0};
     if (!game_create(&game))
@@ -40,6 +37,5 @@ int main(void)
         return -4;
     }
 
-    memory_shutdown();
     return 0;
 }

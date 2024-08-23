@@ -8,6 +8,9 @@ typedef struct TextureSystemConfig
 } TextureSystemConfig;
 
 #define DEFAULT_TEXTURE_NAME "default"
+#define DEFAULT_TEXTURE_SIZE 256
+#define DEFAULT_TEXTURE_BPP 4
+#define DEFAULT_TEXTURE_PIXELS_COUNT (DEFAULT_TEXTURE_SIZE * DEFAULT_TEXTURE_SIZE * DEFAULT_TEXTURE_BPP)
 
 bool texture_system_init(void* state, TextureSystemConfig config);
 void texture_system_shutdown(void);

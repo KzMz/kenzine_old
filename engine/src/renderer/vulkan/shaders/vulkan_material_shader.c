@@ -106,19 +106,18 @@ bool vulkan_material_shader_create(VulkanContext* context, VulkanMaterialShader*
 
     // Attributes
     u32 attribute_offset = 0;
-    const i32 attribute_count = 2;
-    VkVertexInputAttributeDescription attributes[attribute_count];
+    VkVertexInputAttributeDescription attributes[MATERIAL_VERTEX_ATTRIBUTE_COUNT];
 
-    VkFormat format[attribute_count] = {
+    VkFormat format[MATERIAL_VERTEX_ATTRIBUTE_COUNT] = {
         VK_FORMAT_R32G32B32_SFLOAT,
         VK_FORMAT_R32G32_SFLOAT
     };
-    u64 sizes[attribute_count] = {
+    u64 sizes[MATERIAL_VERTEX_ATTRIBUTE_COUNT] = {
         sizeof(Vec3),
         sizeof(Vec2)
     };
 
-    for (u32 i = 0; i < attribute_count; ++i)
+    for (u32 i = 0; i < MATERIAL_VERTEX_ATTRIBUTE_COUNT; ++i)
     {
         attributes[i].binding = 0;
         attributes[i].location = i;
@@ -127,8 +126,7 @@ bool vulkan_material_shader_create(VulkanContext* context, VulkanMaterialShader*
         attribute_offset += sizes[i];
     }
 
-    const i32 descriptor_count = 2;
-    VkDescriptorSetLayout layouts[descriptor_count] = {out_shader->global_descriptor_set_layout, out_shader->local_descriptor_set_layout};
+    VkDescriptorSetLayout layouts[MATERIAL_SHADER_DESCRIPTOR_COUNT] = {out_shader->global_descriptor_set_layout, out_shader->local_descriptor_set_layout};
 
     VkPipelineShaderStageCreateInfo stages_create_infos[MATERIAL_SHADER_STAGE_COUNT];
     memory_zero(stages_create_infos, sizeof(stages_create_infos));
@@ -141,9 +139,9 @@ bool vulkan_material_shader_create(VulkanContext* context, VulkanMaterialShader*
         context,
         &context->main_render_pass,
         sizeof(Vertex3d),
-        attribute_count,
+        MATERIAL_VERTEX_ATTRIBUTE_COUNT,
         attributes,
-        descriptor_count,
+        MATERIAL_SHADER_DESCRIPTOR_COUNT,
         layouts,
         MATERIAL_SHADER_STAGE_COUNT,
         stages_create_infos,
@@ -346,9 +344,8 @@ void vulkan_material_shader_apply_material(VulkanContext* context, VulkanMateria
 
     descriptor_index++;
 
-    const u32 sampler_count = 1;
-    VkDescriptorImageInfo image_info[sampler_count];
-    for (u32 sampler_index = 0; sampler_index < sampler_count; ++sampler_index)
+    VkDescriptorImageInfo image_info[MATERIAL_SHADER_SAMPLER_COUNT];
+    for (u32 sampler_index = 0; sampler_index < MATERIAL_SHADER_SAMPLER_COUNT; ++sampler_index)
     {
         TextureUsage use = shader->sampler_uses[sampler_index];
         Texture* t = NULL;

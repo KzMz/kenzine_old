@@ -210,8 +210,7 @@ void destroy_geometry(GeometrySystemState* state, Geometry* geometry)
 
 bool create_default_geometries(GeometrySystemState* state)
 {
-    const u32 vertex_count = 4;
-    Vertex3d verts[vertex_count] = {
+    Vertex3d verts[4] = {
         {
             .position = {-.5f * 10, -0.5f * 10, 0.0f},
             .texcoord = {0.0f, 0.0f},
@@ -230,10 +229,9 @@ bool create_default_geometries(GeometrySystemState* state)
         }
     };
 
-    const u32 index_count = 6;
-    u32 indices[index_count] = {0, 1, 2, 0, 3, 1};
+    u32 indices[6] = {0, 1, 2, 0, 3, 1};
 
-    if (!renderer_create_geometry(&state->default_geometry, vertex_count, sizeof(Vertex3d), verts, index_count, sizeof(u32), indices))
+    if (!renderer_create_geometry(&state->default_geometry, 4, sizeof(Vertex3d), verts, 6, sizeof(u32), indices))
     {
         log_fatal("Failed to create default geometry");
         return false;
@@ -241,8 +239,7 @@ bool create_default_geometries(GeometrySystemState* state)
 
     state->default_geometry.material = material_system_get_default();
 
-    const u32 vertex_count_2d = 4;
-    Vertex2d verts_2d[vertex_count_2d] = {
+    Vertex2d verts_2d[4] = {
         {
             .position = {-.5f * 10, -0.5f * 10},
             .texcoord = {0.0f, 0.0f},
@@ -261,10 +258,9 @@ bool create_default_geometries(GeometrySystemState* state)
         }
     };    
 
-    const u32 index_count_2d = 6;
-    u32 indices_2d[index_count_2d] = {2, 1, 0, 3, 0, 1};
+    u32 indices_2d[6] = {2, 1, 0, 3, 0, 1};
 
-    if (!renderer_create_geometry(&state->default_2d_geometry, vertex_count_2d, sizeof(Vertex2d), verts_2d, index_count_2d, sizeof(u32), indices_2d))
+    if (!renderer_create_geometry(&state->default_2d_geometry, 4, sizeof(Vertex2d), verts_2d, 6, sizeof(u32), indices_2d))
     {
         log_fatal("Failed to create default 2d geometry");
         return false;

@@ -195,20 +195,17 @@ Texture* texture_system_get_default(void)
 bool create_default_texture(TextureSystemState* state)
 {
     // NOTE: Create default texture
-    const u32 texture_size = 256;
-    const u32 bpp = 4;
-    const u32 pixels_count = texture_size * texture_size * bpp;
-    u8 pixels[pixels_count];
-    for (u32 i = 0; i < pixels_count; i++)
+    u8 pixels[DEFAULT_TEXTURE_PIXELS_COUNT];
+    for (u32 i = 0; i < DEFAULT_TEXTURE_PIXELS_COUNT; i++)
     {
         pixels[i] = 255;
     }
 
-    for (u64 row = 0; row < texture_size; row++)
+    for (u64 row = 0; row < DEFAULT_TEXTURE_SIZE; row++)
     {
-        for (u64 col = 0; col < texture_size; col++)
+        for (u64 col = 0; col < DEFAULT_TEXTURE_SIZE; col++)
         {
-            u64 index = (row * texture_size + col) * bpp;
+            u64 index = (row * DEFAULT_TEXTURE_SIZE + col) * DEFAULT_TEXTURE_BPP;
             if (row % 2 == col % 2)
             {
                 pixels[index + 0] = 0;
@@ -218,9 +215,9 @@ bool create_default_texture(TextureSystemState* state)
     }
 
     string_copy_n(state->default_texture.name, DEFAULT_TEXTURE_NAME, TEXTURE_NAME_MAX_LENGTH);
-    state->default_texture.width = texture_size;
-    state->default_texture.height = texture_size;
-    state->default_texture.channel_count = bpp;
+    state->default_texture.width = DEFAULT_TEXTURE_SIZE;
+    state->default_texture.height = DEFAULT_TEXTURE_SIZE;
+    state->default_texture.channel_count = DEFAULT_TEXTURE_BPP;
     state->default_texture.generation = INVALID_ID;
     state->default_texture.has_transparency = false;
 

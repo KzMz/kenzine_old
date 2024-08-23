@@ -4,7 +4,7 @@ OBJ_DIR := obj
 
 ASSEMBLY := engine
 EXTENSION := .dll
-COMPILER_FLAGS := -g -MD -Werror -Wvla -fdeclspec #-fPIC
+COMPILER_FLAGS := -g -MD -Werror -Wvla -Wgnu-folding-constant -Wno-missing-braces -fdeclspec #-fPIC
 INCLUDE_FLAGS := -Iengine\src -I$(VULKAN_SDK)\include
 LINKER_FLAGS := -g -shared -luser32 -lvulkan-1 -L$(VULKAN_SDK)\Lib -L$(OBJ_DIR)\engine
 DEFINES := -D_DEBUG -DKZEXPORT -D_CRT_SECURE_NO_WARNINGS
