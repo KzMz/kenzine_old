@@ -2,10 +2,25 @@
 #include <string.h>
 #include <stdio.h>
 
-#define MEMORY_REPORT_SIZE 1024 * 8
+#define MEMORY_REPORT_SIZE 1024 * 8 * 2
+
+typedef struct TaggedMemoryStats 
+{
+    u64 allocated_size;
+    u64 num_allocations;
+} TaggedMemoryStats;
+
+typedef struct MemoryStats 
+{
+    u64 total_allocated_size;
+    u64 total_allocations;
+    TaggedMemoryStats tagged_allocations[MEMORY_TAG_COUNT];
+} MemoryStats;
 
 typedef struct MemoryState
 {
+    MemoryStats arena_stats;
+    MemoryStats dynamic_stats;
     Arena memory_arenas[MEMORY_TAG_COUNT];
     DynamicAllocator dynamic_allocator;
     MemoryAllocationType allocation_type;
@@ -30,7 +45,7 @@ static const char* memory_strings[MEMORY_TAG_COUNT] =
     "TEXTURESYSTEM\t",
     "MATERIALSYSTEM\t",
     "GEOMETRYSYSTEM\t",
-    "MATERIALINSTANCE\t",
+    "MATERIALINSTANCE",
     "BINARY\t\t",
     "TEXT\t\t",
     "CUSTOM\t\t",
@@ -89,11 +104,19 @@ void* memory_alloc_c(u64 size, MemoryAllocationType alloc_type, MemoryTag tag)
         default:
         case MEMORY_ALLOCATION_TYPE_ARENA:
         {
+            memory_state->arena_stats.total_allocated_size += size;
+            memory_state->arena_stats.total_allocations++;
+            memory_state->arena_stats.tagged_allocations[tag].allocated_size += size;
+            memory_state->arena_stats.tagged_allocations[tag].num_allocations++;
             return memory_arena_alloc(&memory_state->memory_arenas[tag], size, false);
         } break;
         case MEMORY_ALLOCATION_TYPE_DYNAMIC:
         {
             // TODO: record statistics here
+            memory_state->dynamic_stats.total_allocated_size += size;
+            memory_state->dynamic_stats.total_allocations++;
+            memory_state->dynamic_stats.tagged_allocations[tag].allocated_size += size;
+            memory_state->dynamic_stats.tagged_allocations[tag].num_allocations++;
             return memory_dynalloc_alloc(&memory_state->dynamic_allocator, size);
         } break;
     }
@@ -106,10 +129,17 @@ void memory_free_c(void* block, u64 size, MemoryAllocationType alloc_type, Memor
         default:
         case MEMORY_ALLOCATION_TYPE_ARENA:
         {
-
+            memory_state->arena_stats.total_allocated_size -= size;
+            memory_state->arena_stats.total_allocations--;
+            memory_state->arena_stats.tagged_allocations[tag].allocated_size -= size;
+            memory_state->arena_stats.tagged_allocations[tag].num_allocations--;
         } break;
         case MEMORY_ALLOCATION_TYPE_DYNAMIC:
         {
+            memory_state->dynamic_stats.total_allocated_size -= size;
+            memory_state->dynamic_stats.total_allocations--;
+            memory_state->dynamic_stats.tagged_allocations[tag].allocated_size -= size;
+            memory_state->dynamic_stats.tagged_allocations[tag].num_allocations--;
             memory_dynalloc_free(&memory_state->dynamic_allocator, block, size);
         } break;
     }
@@ -269,7 +299,7 @@ char* get_memory_report(void)
     const u64 mib = 1024 * 1024;
     const u64 kib = 1024;
 
-    char memory_report[MEMORY_REPORT_SIZE] = "System Memory Report:\n";
+    char memory_report[MEMORY_REPORT_SIZE] = "System Memory Report:\nARENAS:\n";
     u64 offset = strlen(memory_report);
 
     for (u32 i = 0; i < MEMORY_TAG_COUNT; ++i) 
@@ -325,6 +355,66 @@ char* get_memory_report(void)
 
         i32 length = snprintf(memory_report + offset, MEMORY_REPORT_SIZE - offset, "%s: %llu allocations (%llu dynamic) - %.2f%s (%.2f%s max)\n", 
             memory_strings[i], num_allocations, num_dynamic_allocations, size, unit, max_size, max_unit);
+        offset += length;
+    }
+
+    char unit[4] = "KiB";
+    u64 free_size = freelist_get_free_space(&memory_state->dynamic_allocator.free_list);
+    if (free_size >= gib) 
+    {
+        free_size /= (f32) gib;
+        unit[0] = 'G';
+    } 
+    else if (free_size >= mib) 
+    {
+        free_size /= (f32) mib;
+        unit[0] = 'M';
+    } 
+    else if (free_size >= kib) 
+    {
+        free_size /= (f32) kib;
+        unit[0] = 'K';
+    } 
+    else 
+    {
+        unit[0] = 'B';
+        unit[1] = '\0';
+    }
+
+    i32 length = snprintf(memory_report + offset, MEMORY_REPORT_SIZE - offset, "\nDYNAMIC ALLOCATOR: Free %.2f%s\n",
+            (f32) free_size, unit);
+    offset += length;
+
+    for (u32 i = 0; i < MEMORY_TAG_COUNT; ++i) 
+    {
+        char unit[4] = "KiB";
+        char max_unit[4] = "KiB";
+        u64 num_allocations = memory_state->dynamic_stats.tagged_allocations[i].num_allocations;
+        f32 size = memory_state->dynamic_stats.tagged_allocations[i].allocated_size;
+        
+        if (size >= gib) 
+        {
+            size /= (f32) gib;
+            unit[0] = 'G';
+        } 
+        else if (size >= mib) 
+        {
+            size /= (f32) mib;
+            unit[0] = 'M';
+        } 
+        else if (size >= kib) 
+        {
+            size /= (f32) kib;
+            unit[0] = 'K';
+        } 
+        else 
+        {
+            unit[0] = 'B';
+            unit[1] = '\0';
+        }
+
+        i32 length = snprintf(memory_report + offset, MEMORY_REPORT_SIZE - offset, "%s: %llu allocations - %.2f%s\n", 
+            memory_strings[i], num_allocations, size, unit);
         offset += length;
     }
 

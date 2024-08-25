@@ -322,3 +322,21 @@ FreeListNode* get_free_node(FreeList* list)
     }
     return new_node;
 }
+
+u64 freelist_get_free_space(FreeList* list)
+{
+    if (list == NULL || list->nodes == NULL)
+    {
+        return 0;
+    }
+
+    u64 total = 0;
+    FreeListNode* node = list->head;
+    while (node != NULL)
+    {
+        total += node->size;
+        node = node->next;
+    }
+
+    return total;
+}

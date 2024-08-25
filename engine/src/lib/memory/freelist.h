@@ -6,6 +6,7 @@ typedef struct FreeListNode
 {
     u64 offset;
     u64 size;
+    u8 tag;
     struct FreeListNode* prev;
     struct FreeListNode* next;
 } FreeListNode;
@@ -28,3 +29,5 @@ KENZINE_API bool freelist_resize(FreeList* list, u64 new_total_size, void* new_n
 
 KENZINE_API void freelist_clear(FreeList* list);
 KENZINE_API u64 freelist_get_nodes_size(u64 total_size);
+
+KENZINE_API u64 freelist_get_free_space(FreeList* list);
