@@ -18,10 +18,11 @@ typedef struct FreeList
     FreeListNode* nodes;
 } FreeList;
 
-KENZINE_API void freelist_create(u64 total_size, FreeList* out_list);
+KENZINE_API void freelist_create(u64 total_size, void* nodes_memory, FreeList* out_list);
 KENZINE_API void freelist_destroy(FreeList* list);
 
 KENZINE_API bool freelist_alloc(FreeList* list, u64 size, u64* out_offset);
 KENZINE_API bool freelist_free(FreeList* list, u64 size, u64 offset);
 
 KENZINE_API void freelist_clear(FreeList* list);
+KENZINE_API u64 freelist_get_nodes_size(u64 total_size);

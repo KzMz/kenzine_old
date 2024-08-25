@@ -8,6 +8,7 @@ typedef struct MemoryState
 {
     Arena memory_arenas[MEMORY_TAG_COUNT];
     DynamicAllocator dynamic_allocator;
+    void* dynamic_allocator_memory;
     MemoryAllocationType allocation_type;
 } MemoryState;
 
@@ -55,7 +56,9 @@ void memory_init(MemorySystemConfiguration config)
 
     if (config.dynamic_allocator_size > 0)
     {
-        memory_dynalloc_create(config.dynamic_allocator_size, &memory_state->dynamic_allocator);
+        u64 nodes_size = freelist_get_nodes_size(config.dynamic_allocator_size); // can have a remainder so we do this to round it to the node size
+        memory_state->dynamic_allocator_memory = platform_alloc(nodes_size, false);
+        memory_dynalloc_create(config.dynamic_allocator_size, memory_state->dynamic_allocator_memory, &memory_state->dynamic_allocator);
     }
 }
 
@@ -66,7 +69,7 @@ void memory_shutdown(void)
         arena_clear(&memory_state->memory_arenas[i]);
     }
 
-    memory_dynalloc_destroy(&memory_state->dynamic_allocator);
+    memory_dynalloc_destroy(&memory_state->dynamic_allocator, true);
 }
 
 void* memory_alloc(u64 size, MemoryTag tag)
@@ -134,7 +137,7 @@ void memory_arena_clear(Arena* arena)
     arena_clear(arena);
 }
 
-bool memory_dynalloc_create(u64 size, DynamicAllocator* out_allocator)
+bool memory_dynalloc_create(u64 size, void* nodes_memory, DynamicAllocator* out_allocator)
 {
     if (size == 0)
     {
@@ -147,11 +150,17 @@ bool memory_dynalloc_create(u64 size, DynamicAllocator* out_allocator)
         return false;
     }
 
-    freelist_create(size, &out_allocator->free_list);
+    if (nodes_memory == NULL)
+    {
+        log_error("DynamicAllocator nodes_memory must not be NULL");
+        return false;
+    }
+
+    freelist_create(size, nodes_memory, &out_allocator->free_list);
     return true;
 }
 
-bool memory_dynalloc_destroy(DynamicAllocator* allocator)
+bool memory_dynalloc_destroy(DynamicAllocator* allocator, bool destroy_nodes)
 {
     if (allocator == NULL)
     {
@@ -159,7 +168,13 @@ bool memory_dynalloc_destroy(DynamicAllocator* allocator)
         return false;
     }
 
+    if (destroy_nodes && allocator->free_list.nodes != NULL)
+    {
+        platform_free(allocator->free_list.nodes, false);
+    }
+
     freelist_destroy(&allocator->free_list);
+    memory_zero(allocator, sizeof(DynamicAllocator));
     return true;
 }
 

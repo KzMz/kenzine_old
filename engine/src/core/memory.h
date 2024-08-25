@@ -4,6 +4,8 @@
 #include "lib/memory/arena.h"
 #include "lib/memory/freelist.h"
 
+#define ARENA_REGION_SIZE 10 * 1024
+
 typedef enum MemoryTag 
 {
     MEMORY_TAG_NONE = 0,
@@ -63,8 +65,8 @@ KENZINE_API void* memory_arena_alloc(Arena* arena, u64 size, bool aligned);
 KENZINE_API void memory_arena_clear(Arena* arena); 
 
 // Dynamic allocation
-KENZINE_API bool memory_dynalloc_create(u64 size, DynamicAllocator* out_allocator);
-KENZINE_API bool memory_dynalloc_destroy(DynamicAllocator* allocator);
+KENZINE_API bool memory_dynalloc_create(u64 size, void* nodes_memory, DynamicAllocator* out_allocator);
+KENZINE_API bool memory_dynalloc_destroy(DynamicAllocator* allocator, bool destroy_nodes);
 KENZINE_API void* memory_dynalloc_alloc(DynamicAllocator* allocator, u64 size);
 KENZINE_API bool memory_dynalloc_free(DynamicAllocator* allocator, void* block, u64 size);
 

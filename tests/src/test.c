@@ -67,4 +67,5 @@ void test_run(void)
     clock_stop(&total_time);
 
     log_info("Tests run: %d passed: %d failed %d skipped %d", num_tests, passed, failed, skipped);
+    dynarray_destroy(tests);
 }

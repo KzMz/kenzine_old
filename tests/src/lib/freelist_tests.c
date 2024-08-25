@@ -7,8 +7,11 @@
 
 bool freelist_should_create_destroy()
 {
+    u64 memory_size = freelist_get_nodes_size(1024);
+    void* memory = platform_alloc(memory_size, false);
+
     FreeList list;
-    freelist_create(1024, &list);
+    freelist_create(1024, memory, &list);
 
     expect_eq(list.capacity, 1024 / sizeof(FreeListNode));
     expect_eq(list.total_size, 1024);
@@ -24,13 +27,17 @@ bool freelist_should_create_destroy()
     expect_eq(list.head, NULL);
     expect_eq(list.nodes, NULL);
 
+    platform_free(memory, false);
     return true;
 }
 
 bool freelist_should_alloc_and_free()
 {
+    u64 memory_size = freelist_get_nodes_size(1024);
+    void* memory = platform_alloc(memory_size, false);
+
     FreeList list;
-    freelist_create(1024, &list);
+    freelist_create(1024, memory, &list);
 
     u64 offset = INVALID_ID;
     bool result = freelist_alloc(&list, 64, &offset);
@@ -46,13 +53,17 @@ bool freelist_should_alloc_and_free()
     expect_eq(list.head, NULL);
     expect_eq(list.nodes, NULL);
 
+    platform_free(memory, false);
     return true;
 }
 
 bool freelist_should_alloc_and_free_multiple()
 {
+    u64 memory_size = freelist_get_nodes_size(1024);
+    void* memory = platform_alloc(memory_size, false);
+
     FreeList list;
-    freelist_create(1024, &list);
+    freelist_create(1024, memory, &list);
 
     u64 offset = INVALID_ID;
     bool result = freelist_alloc(&list, 64, &offset);
@@ -92,13 +103,17 @@ bool freelist_should_alloc_and_free_multiple()
     expect_eq(list.head, NULL);
     expect_eq(list.nodes, NULL);
 
+    platform_free(memory, false);
     return true;
 }
 
 bool freelist_should_alloc_and_free_various()
 {
+    u64 memory_size = freelist_get_nodes_size(1024);
+    void* memory = platform_alloc(memory_size, false);
+
     FreeList list;
-    freelist_create(1024, &list);
+    freelist_create(1024, memory, &list);
 
     u64 offset = INVALID_ID;
     bool result = freelist_alloc(&list, 64, &offset);
@@ -138,13 +153,17 @@ bool freelist_should_alloc_and_free_various()
     expect_eq(list.head, NULL);
     expect_eq(list.nodes, NULL);
 
+    platform_free(memory, false);
     return true;
 }
 
 bool freelist_should_alloc_full_and_fail()
 {
+    u64 memory_size = freelist_get_nodes_size(1024);
+    void* memory = platform_alloc(memory_size, false);
+
     FreeList list;
-    freelist_create(1024, &list);
+    freelist_create(1024, memory, &list);
 
     u64 offset = INVALID_ID;
     bool result = freelist_alloc(&list, 1024, &offset);
@@ -161,6 +180,7 @@ bool freelist_should_alloc_full_and_fail()
     expect_eq(list.head, NULL);
     expect_eq(list.nodes, NULL);
 
+    platform_free(memory, false);
     return true;
 }
 

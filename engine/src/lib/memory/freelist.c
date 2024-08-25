@@ -6,7 +6,7 @@
 
 void empty_node(FreeList* list, FreeListNode* node);
 
-void freelist_create(u64 total_size, FreeList* out_list)
+void freelist_create(u64 total_size, void* nodes_memory, FreeList* out_list)
 {
     const u32 min_entries = 8;
     u64 min_memory = (sizeof(FreeList) + sizeof(FreeListNode) * min_entries);
@@ -19,7 +19,8 @@ void freelist_create(u64 total_size, FreeList* out_list)
     u64 capacity = (total_size / sizeof(FreeListNode));
     out_list->total_size = total_size;
     out_list->capacity = capacity;
-    out_list->nodes = memory_alloc(sizeof(FreeListNode) * capacity, MEMORY_TAG_FREELIST);
+
+    out_list->nodes = (FreeListNode*) nodes_memory;
     memory_zero(out_list->nodes, sizeof(FreeListNode) * capacity);
 
     out_list->head = &out_list->nodes[0];
@@ -43,8 +44,6 @@ void freelist_destroy(FreeList* list)
     {
         return;
     }
-
-    memory_free(list->nodes, sizeof(FreeListNode) * list->capacity, MEMORY_TAG_FREELIST);
     
     list->nodes = NULL;
     memory_zero(list, sizeof(FreeList));
@@ -238,4 +237,10 @@ void empty_node(FreeList* list, FreeListNode* node)
     node->size = INVALID_ID;
     node->prev = NULL;
     node->next = NULL;
+}
+
+u64 freelist_get_nodes_size(u64 total_size)
+{
+    u64 capacity = (total_size / sizeof(FreeListNode)); 
+    return sizeof(FreeListNode) * capacity;
 }
