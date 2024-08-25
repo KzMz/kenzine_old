@@ -27,6 +27,9 @@ void* vulkan_buffer_lock(VulkanContext* context, VulkanBuffer* buffer, u64 offse
 void vulkan_buffer_unlock(VulkanContext* context, VulkanBuffer* buffer);
 void vulkan_buffer_load_data(VulkanContext* context, VulkanBuffer* buffer, u64 offset, u64 size, u32 flags, const void* data);
 
+bool vulkan_buffer_alloc(VulkanBuffer* buffer, u64 size, u64* out_offset);
+bool vulkan_buffer_free(VulkanBuffer* buffer, u64 size, u64 offset);
+
 void vulkan_buffer_copy(
     VulkanContext* context,
     VkCommandPool pool,

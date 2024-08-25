@@ -43,6 +43,9 @@ typedef enum MemoryAllocationType
 typedef struct DynamicAllocator
 {
     FreeList free_list;
+    void* total_memory;
+    void* nodes_memory;
+    void* memory_to_alloc;
 } DynamicAllocator;
 
 typedef struct MemorySystemConfiguration
@@ -57,6 +60,10 @@ KENZINE_API void memory_shutdown(void);
 
 KENZINE_API void* memory_alloc(u64 size, MemoryTag tag);
 KENZINE_API void memory_free(void* block, u64 size, MemoryTag tag);
+
+KENZINE_API void* memory_alloc_c(u64 size, MemoryAllocationType alloc_type, MemoryTag tag);
+KENZINE_API void memory_free_c(void* block, u64 size, MemoryAllocationType alloc_type, MemoryTag tag);
+
 KENZINE_API void memory_free_all(MemoryTag tag);
 
 // Arena
@@ -65,7 +72,7 @@ KENZINE_API void* memory_arena_alloc(Arena* arena, u64 size, bool aligned);
 KENZINE_API void memory_arena_clear(Arena* arena); 
 
 // Dynamic allocation
-KENZINE_API bool memory_dynalloc_create(u64 size, void* nodes_memory, DynamicAllocator* out_allocator);
+KENZINE_API bool memory_dynalloc_create(u64 size, DynamicAllocator* out_allocator);
 KENZINE_API bool memory_dynalloc_destroy(DynamicAllocator* allocator, bool destroy_nodes);
 KENZINE_API void* memory_dynalloc_alloc(DynamicAllocator* allocator, u64 size);
 KENZINE_API bool memory_dynalloc_free(DynamicAllocator* allocator, void* block, u64 size);

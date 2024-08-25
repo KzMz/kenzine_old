@@ -78,6 +78,7 @@ KENZINE_API bool app_init(Game* game)
     config.arena_region_size = 10 * 1024;
     config.dynamic_allocator_size = 0;
     config.allocation_type = MEMORY_ALLOCATION_TYPE_ARENA;
+    config.dynamic_allocator_size = GIGABYTES(1);
     // Initialize memory system
     memory_init(config);
 

@@ -24,5 +24,7 @@ KENZINE_API void freelist_destroy(FreeList* list);
 KENZINE_API bool freelist_alloc(FreeList* list, u64 size, u64* out_offset);
 KENZINE_API bool freelist_free(FreeList* list, u64 size, u64 offset);
 
+KENZINE_API bool freelist_resize(FreeList* list, u64 new_total_size, void* new_nodes_memory, void** out_old_nodes_memory);
+
 KENZINE_API void freelist_clear(FreeList* list);
 KENZINE_API u64 freelist_get_nodes_size(u64 total_size);

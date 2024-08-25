@@ -210,6 +210,9 @@ void destroy_geometry(GeometrySystemState* state, Geometry* geometry)
 
 bool create_default_geometries(GeometrySystemState* state)
 {
+    state->default_geometry.internal_id = INVALID_ID;
+    state->default_2d_geometry.internal_id = INVALID_ID;
+
     Vertex3d verts[4] = {
         {
             .position = {-.5f * 10, -0.5f * 10, 0.0f},

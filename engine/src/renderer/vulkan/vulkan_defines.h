@@ -1,10 +1,12 @@
 #pragma once
 
-#include "defines.h"
 #include <vulkan/vulkan.h>
+
+#include "defines.h"
 #include "core/asserts.h"
 #include "renderer/renderer_defines.h"
 #include "lib/math/math_defines.h"
+#include "lib/memory/freelist.h"
 
 #define MAX_INDICES 32
 #define MAX_PHYSICAL_DEVICES 32
@@ -37,6 +39,11 @@ typedef struct VulkanBuffer
     bool locked;
     i32 memory_index;
     u32 memory_property_flags;
+
+    // For dynamic buffers
+    FreeList free_list;
+    u64 free_list_size;
+    void* freelist_memory;
 } VulkanBuffer;
 
 typedef struct VulkanSwapchainSupportInfo
@@ -319,9 +326,6 @@ typedef struct VulkanContext
 
     VulkanMaterialShader material_shader;
     VulkanUIShader ui_shader;
-
-    u64 geometry_vertex_offset;
-    u64 geometry_index_offset;
 
     VulkanGeometryData geometries[MAX_GEOMETRY_COUNT];
 

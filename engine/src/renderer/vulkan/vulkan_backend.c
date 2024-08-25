@@ -51,7 +51,7 @@ void destroy_sync_objects(RendererBackend* backend);
 
 bool recreate_swapchain(RendererBackend* backend);
 
-void upload_data(VulkanContext* context, VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, u64 offset, u64 size, void* data);
+bool upload_data(VulkanContext* context, VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, u64* old_offset, u64 size, void* data);
 void free_data(VulkanBuffer* buffer, u64 offset, u64 size);
 
 bool vulkan_renderer_backend_init(RendererBackend* backend, const char* app_name)
@@ -520,33 +520,38 @@ bool vulkan_renderer_create_geometry
     VkCommandPool pool = context.device.graphics_command_pool;
     VkQueue queue = context.device.graphics_queue;
 
-    internal_data->vertex_buffer_offset = context.geometry_vertex_offset;
     internal_data->vertex_count = vertex_count;
     internal_data->vertex_element_size = sizeof(Vertex3d);
     u32 vertex_buffer_size = vertex_count * internal_data->vertex_element_size;
-    upload_data(
+    if (!upload_data(
         &context, pool, VK_NULL_HANDLE, queue, 
         &context.obj_vertex_buffer, 
-        internal_data->vertex_buffer_offset, 
+        &internal_data->vertex_buffer_offset, 
         vertex_buffer_size, 
         (void* ) vertices
-    );
-    context.geometry_vertex_offset += vertex_buffer_size;
+    ))
+    {
+        log_error("Failed to upload vertex data.");
+        return false;
+    }
+
 
     if (index_count > 0 && indices != NULL)
     {
-        internal_data->index_buffer_offset = context.geometry_index_offset;
         internal_data->index_count = index_count;
         internal_data->index_element_size = sizeof(u32);
         u32 index_buffer_size = index_count * internal_data->index_element_size;
-        upload_data(
+        if (!upload_data(
             &context, pool, VK_NULL_HANDLE, queue, 
             &context.obj_index_buffer, 
-            internal_data->index_buffer_offset, 
+            &internal_data->index_buffer_offset, 
             index_buffer_size, 
             (void*) indices
-        );
-        context.geometry_index_offset += index_buffer_size;
+        ))
+        {
+            log_error("Failed to upload index data.");
+            return false;
+        }
     }
 
     if (internal_data->generation == INVALID_ID)
@@ -971,8 +976,6 @@ bool create_buffers(VulkanContext* context)
         return false;
     }
 
-    context->geometry_vertex_offset = 0;
-
     const u64 index_buffer_size = sizeof(u32) * 1024 * 1024;
     if (!vulkan_buffer_create(
         context,
@@ -987,8 +990,6 @@ bool create_buffers(VulkanContext* context)
         return false;
     }
 
-    context->geometry_index_offset = 0;
-
     return true;
 }
 
@@ -998,8 +999,14 @@ void destroy_buffers(VulkanContext* context)
     vulkan_buffer_destroy(context, &context->obj_index_buffer);
 }
 
-void upload_data(VulkanContext* context, VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, u64 offset, u64 size, void* data)
+bool upload_data(VulkanContext* context, VkCommandPool pool, VkFence fence, VkQueue queue, VulkanBuffer* buffer, u64* out_offset, u64 size, void* data)
 {
+    if (!vulkan_buffer_alloc(buffer, size, out_offset))
+    {
+        log_error("Failed to allocate buffer memory.");
+        return false;
+    }
+
     VkBufferUsageFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     VulkanBuffer staging_buffer = {0};
     vulkan_buffer_create(context, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, true, &staging_buffer);
@@ -1014,16 +1021,19 @@ void upload_data(VulkanContext* context, VkCommandPool pool, VkFence fence, VkQu
         staging_buffer.buffer,
         0,
         buffer->buffer,
-        offset,
+        *out_offset,
         size
     );
 
     vulkan_buffer_destroy(context, &staging_buffer);
+    return true;
 }
 
 void free_data(VulkanBuffer* buffer, u64 offset, u64 size)
 {
+    if (buffer == NULL) return;
 
+    vulkan_buffer_free(buffer, size, offset);
 }
 
 bool vulkan_renderer_create_material(Material* material)

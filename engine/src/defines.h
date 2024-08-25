@@ -105,3 +105,7 @@ if defined(__ANDROID__)
 #define is_pointer_or_array(p) (__builtin_classify_type(p) == 5)
 #define decay(p) (&*__builtin_choose_expr(is_pointer_or_array(p), p, NULL))
 #define is_pointer(p) is_same_type(p, decay(p))
+
+#define GIGABYTES(value) ((value) * 1024 * 1024 * 1024)
+#define MEGABYTES(value) ((value) * 1024 * 1024)
+#define KILOBYTES(value) ((value) * 1024)

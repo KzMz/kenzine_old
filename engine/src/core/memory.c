@@ -8,7 +8,6 @@ typedef struct MemoryState
 {
     Arena memory_arenas[MEMORY_TAG_COUNT];
     DynamicAllocator dynamic_allocator;
-    void* dynamic_allocator_memory;
     MemoryAllocationType allocation_type;
 } MemoryState;
 
@@ -56,9 +55,9 @@ void memory_init(MemorySystemConfiguration config)
 
     if (config.dynamic_allocator_size > 0)
     {
-        u64 nodes_size = freelist_get_nodes_size(config.dynamic_allocator_size); // can have a remainder so we do this to round it to the node size
-        memory_state->dynamic_allocator_memory = platform_alloc(nodes_size, false);
-        memory_dynalloc_create(config.dynamic_allocator_size, memory_state->dynamic_allocator_memory, &memory_state->dynamic_allocator);
+        u64 nodes_size = freelist_get_nodes_size(config.dynamic_allocator_size); // size required for the nodes
+        memory_state->dynamic_allocator.total_memory = platform_alloc(nodes_size + config.dynamic_allocator_size, false);
+        memory_dynalloc_create(config.dynamic_allocator_size, &memory_state->dynamic_allocator);
     }
 }
 
@@ -75,8 +74,17 @@ void memory_shutdown(void)
 void* memory_alloc(u64 size, MemoryTag tag)
 {
     // TODO: memory alignment
+    return memory_alloc_c(size, memory_state->allocation_type, tag);
+}
 
-    switch (memory_state->allocation_type)
+void memory_free(void* block, u64 size, MemoryTag tag)
+{
+    return memory_free_c(block, size, memory_state->allocation_type, tag);
+}
+
+void* memory_alloc_c(u64 size, MemoryAllocationType alloc_type, MemoryTag tag)
+{
+    switch (alloc_type)
     {
         default:
         case MEMORY_ALLOCATION_TYPE_ARENA:
@@ -91,9 +99,9 @@ void* memory_alloc(u64 size, MemoryTag tag)
     }
 }
 
-void memory_free(void* block, u64 size, MemoryTag tag)
+void memory_free_c(void* block, u64 size, MemoryAllocationType alloc_type, MemoryTag tag)
 {
-    switch (memory_state->allocation_type)
+    switch (alloc_type)
     {
         default:
         case MEMORY_ALLOCATION_TYPE_ARENA:
@@ -137,7 +145,7 @@ void memory_arena_clear(Arena* arena)
     arena_clear(arena);
 }
 
-bool memory_dynalloc_create(u64 size, void* nodes_memory, DynamicAllocator* out_allocator)
+bool memory_dynalloc_create(u64 size, DynamicAllocator* out_allocator)
 {
     if (size == 0)
     {
@@ -150,13 +158,18 @@ bool memory_dynalloc_create(u64 size, void* nodes_memory, DynamicAllocator* out_
         return false;
     }
 
-    if (nodes_memory == NULL)
+    if (out_allocator->total_memory == NULL)
     {
-        log_error("DynamicAllocator nodes_memory must not be NULL");
+        log_error("DynamicAllocator->total_memory should be allocated in advance");
         return false;
     }
 
-    freelist_create(size, nodes_memory, &out_allocator->free_list);
+    out_allocator->nodes_memory = out_allocator->total_memory;
+    out_allocator->memory_to_alloc = (void*) ((u64) out_allocator->nodes_memory + freelist_get_nodes_size(size));
+
+    freelist_create(size, out_allocator->nodes_memory, &out_allocator->free_list);
+
+    memory_zero(out_allocator->memory_to_alloc, size);
     return true;
 }
 
@@ -168,9 +181,9 @@ bool memory_dynalloc_destroy(DynamicAllocator* allocator, bool destroy_nodes)
         return false;
     }
 
-    if (destroy_nodes && allocator->free_list.nodes != NULL)
+    if (destroy_nodes && allocator->total_memory != NULL)
     {
-        platform_free(allocator->free_list.nodes, false);
+        platform_free(allocator->total_memory, false);
     }
 
     freelist_destroy(&allocator->free_list);
@@ -198,7 +211,7 @@ void* memory_dynalloc_alloc(DynamicAllocator* allocator, u64 size)
         return NULL;
     }
 
-    return (void*) (allocator->free_list.nodes + offset);
+    return (void*) (allocator->memory_to_alloc + offset);
 }
 
 bool memory_dynalloc_free(DynamicAllocator* allocator, void* block, u64 size)
@@ -219,13 +232,13 @@ bool memory_dynalloc_free(DynamicAllocator* allocator, void* block, u64 size)
         return false;
     }
 
-    if ((u64) block < (u64) allocator->free_list.nodes || (u64) block > ((u64) allocator->free_list.nodes) + allocator->free_list.total_size)
+    if ((u64) block < (u64) allocator->memory_to_alloc || (u64) block > ((u64) allocator->memory_to_alloc) + allocator->free_list.total_size)
     {
-        log_error("DynamicAllocator block is not within the bounds of the allocator (0x%p - 0x%p)", allocator->free_list.nodes, allocator->free_list.nodes + allocator->free_list.total_size);
+        log_error("DynamicAllocator block is not within the bounds of the allocator (0x%p - 0x%p)", allocator->memory_to_alloc, allocator->memory_to_alloc + allocator->free_list.total_size);
         return false;
     }
 
-    u64 offset = (u64) block - (u64) allocator->free_list.nodes;
+    u64 offset = (u64) block - (u64) allocator->memory_to_alloc;
     if (!freelist_free(&allocator->free_list, size, offset))
     {
         log_error("DynamicAllocator failed to free %llu bytes at offset %llu", size, offset);

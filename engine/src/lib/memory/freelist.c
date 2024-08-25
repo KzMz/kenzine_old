@@ -5,17 +5,10 @@
 #include <stddef.h>
 
 void empty_node(FreeList* list, FreeListNode* node);
+FreeListNode* get_free_node(FreeList* list);
 
 void freelist_create(u64 total_size, void* nodes_memory, FreeList* out_list)
 {
-    const u32 min_entries = 8;
-    u64 min_memory = (sizeof(FreeList) + sizeof(FreeListNode) * min_entries);
-    if (total_size < min_memory)
-    {
-        log_error("FreeList: total size is too small. Minimum size is %llu bytes", min_memory);
-        return;
-    }
-
     u64 capacity = (total_size / sizeof(FreeListNode));
     out_list->total_size = total_size;
     out_list->capacity = capacity;
@@ -102,16 +95,7 @@ bool freelist_free(FreeList* list, u64 size, u64 offset)
     if (node == NULL)
     {
         // List is full so we need to create a new node
-        FreeListNode* new_node = NULL;
-        for (u64 i = 0; i < list->capacity; i++)
-        {
-            if (list->nodes[i].offset == INVALID_ID)
-            {
-                new_node = &list->nodes[i];
-                break;
-            }
-        }
-        
+        FreeListNode* new_node = get_free_node(list);        
         new_node->offset = offset;
         new_node->size = size;
         new_node->prev = NULL;
@@ -141,16 +125,7 @@ bool freelist_free(FreeList* list, u64 size, u64 offset)
             else if (node->offset > offset)
             {
                 // we are over what we need so we create a new node
-                FreeListNode* new_node = NULL;
-                for (u64 i = 0; i < list->capacity; i++)
-                {
-                    if (list->nodes[i].offset == INVALID_ID)
-                    {
-                        new_node = &list->nodes[i];
-                        break;
-                    }
-                }
-
+                FreeListNode* new_node = get_free_node(list);
                 if (new_node == NULL)
                 {
                     log_error("FreeList: no more space for new node");
@@ -210,6 +185,91 @@ bool freelist_free(FreeList* list, u64 size, u64 offset)
     return false;
 }
 
+bool freelist_resize(FreeList* list, u64 new_total_size, void* new_nodes_memory, void** out_old_nodes_memory)
+{
+    if (list == NULL || list->nodes == NULL || new_nodes_memory == NULL || list->total_size > new_total_size)
+    {
+        return false;
+    }
+    
+    u64 new_capacity = (new_total_size / sizeof(FreeListNode));
+    *out_old_nodes_memory = list->nodes;
+
+    FreeListNode* old_nodes = list->nodes; // backup old nodes
+
+    u64 old_size = list->total_size;
+    u64 size_diff = new_total_size - old_size;
+    list->total_size = new_total_size;
+    list->capacity = new_capacity;
+    list->nodes = (FreeListNode*) new_nodes_memory;
+    memory_zero(list->nodes, sizeof(FreeListNode) * new_capacity);
+
+    for (i64 i = 0; i < list->capacity; ++i)
+    {
+        list->nodes[i].offset = INVALID_ID;
+        list->nodes[i].size = INVALID_ID;
+        list->nodes[i].prev = NULL;
+        list->nodes[i].next = NULL;
+    }
+
+    list->head = &list->nodes[0];
+
+    FreeListNode* new_node = list->head;
+    FreeListNode* old_node = &old_nodes[0];
+
+    if (old_node == NULL)
+    {
+        // No old head, so list completely allocated. So we put head at the end of list with the diff size
+        new_node->offset = old_size;
+        new_node->size = size_diff;
+        new_node->next = NULL;
+        new_node->prev = NULL;
+    }
+    else 
+    {
+        while (old_node != NULL)
+        {
+            // generate new node to copy data from
+            FreeListNode* node_tmp = get_free_node(list);
+            node_tmp->offset = old_node->offset;
+            node_tmp->size = old_node->size;
+            node_tmp->prev = new_node;
+            node_tmp->next = NULL;
+            new_node->next = node_tmp;
+
+            new_node = new_node->next;
+
+            if (old_node->next != NULL)
+            {
+                old_node = old_node->next;
+            }
+            else 
+            {
+                // end of list
+                if (old_node->offset + old_node->size == old_size)
+                {
+                    // old node is at the end of the list, so we need to adjust the size
+                    new_node->size += size_diff;
+                }
+                else 
+                {
+                    // old node is not at the end of the list, so we need to create a new node
+                    FreeListNode* new_end_node = get_free_node(list);
+                    new_end_node->offset = old_size;
+                    new_end_node->size = size_diff;
+                    new_end_node->prev = new_node;
+                    new_end_node->next = NULL;
+                    new_node->next = new_end_node;
+                }
+
+                break;
+            }
+        }
+    }
+
+    return true;
+}
+
 void freelist_clear(FreeList* list)
 {
     if (list == NULL || list->nodes == NULL)
@@ -242,5 +302,23 @@ void empty_node(FreeList* list, FreeListNode* node)
 u64 freelist_get_nodes_size(u64 total_size)
 {
     u64 capacity = (total_size / sizeof(FreeListNode)); 
+    if (capacity <= 0)
+    {
+        capacity = 1;
+    }
     return sizeof(FreeListNode) * capacity;
+}
+
+FreeListNode* get_free_node(FreeList* list)
+{
+    FreeListNode* new_node = NULL;
+    for (i64 i = 0; i < list->capacity; i++)
+    {
+        if (list->nodes[i].offset == INVALID_ID)
+        {
+            new_node = &list->nodes[i];
+            break;
+        }
+    }
+    return new_node;
 }

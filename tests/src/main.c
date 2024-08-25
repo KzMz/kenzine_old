@@ -10,6 +10,7 @@ int main(void)
     MemorySystemConfiguration config = { 0 };
     config.allocation_type = MEMORY_ALLOCATION_TYPE_ARENA;
     config.arena_region_size = ARENA_REGION_SIZE;
+    config.dynamic_allocator_size = GIGABYTES(1);
     memory_init(config);
 
     test_init();
