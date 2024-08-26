@@ -16,6 +16,8 @@ bool vulkan_pipeline_create(
     VkRect2D scissor,
     bool is_wireframe,
     bool use_depth_test,
+    u32 push_constant_range_count,
+    Range* push_constant_ranges,
     VulkanPipeline* out_pipeline
 );
 

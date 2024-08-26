@@ -11,3 +11,5 @@ KENZINE_API bool json_utils_get_resource_metadata(
     u32 resource_name_size, 
     ResourceMetadata* out_metadata
 );
+
+KENZINE_API const char* json_utils_get_string(struct JsonNode* parent, const char* key);

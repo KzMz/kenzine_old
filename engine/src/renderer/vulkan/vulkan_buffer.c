@@ -17,23 +17,28 @@ bool vulkan_buffer_create(
     VkBufferUsageFlagBits usage,
     u32 memory_property_flags,
     bool bind,
+    bool has_freelist,
     VulkanBuffer* out_buffer
 )
 {
     memory_zero(out_buffer, sizeof(VulkanBuffer));
+    out_buffer->has_freelist = has_freelist;
     out_buffer->size = size;
     out_buffer->usage = usage;
     out_buffer->memory_property_flags = memory_property_flags;
 
-    u64 nodes_size = freelist_get_nodes_size(size);
-    out_buffer->freelist_memory = memory_alloc_c(nodes_size, MEMORY_ALLOCATION_TYPE_DYNAMIC, MEMORY_TAG_RENDERER);
-    if (out_buffer->freelist_memory == NULL)
+    if (has_freelist)
     {
-        log_error("Failed to allocate memory for freelist");
-        return false;
+        u64 nodes_size = freelist_get_nodes_size(size);
+        out_buffer->freelist_memory = memory_alloc_c(nodes_size, MEMORY_ALLOCATION_TYPE_DYNAMIC, MEMORY_TAG_RENDERER);
+        if (out_buffer->freelist_memory == NULL)
+        {
+            log_error("Failed to allocate memory for freelist");
+            return false;
+        }
+        out_buffer->free_list_size = nodes_size;
+        freelist_create(size, out_buffer->freelist_memory, &out_buffer->free_list);
     }
-    out_buffer->free_list_size = nodes_size;
-    freelist_create(size, out_buffer->freelist_memory, &out_buffer->free_list);
 
     VkBufferCreateInfo buffer_info = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
     buffer_info.size = size;
@@ -108,18 +113,22 @@ bool vulkan_buffer_resize(
         return false;
     }
 
-    u64 nodes_size = freelist_get_nodes_size(new_size);
-    void* old_block = NULL;
-    void* new_block = memory_alloc_c(nodes_size, MEMORY_ALLOCATION_TYPE_DYNAMIC, MEMORY_TAG_RENDERER);
-    if (!freelist_resize(&buffer->free_list, new_size, new_block, &old_block))
+    if (buffer->has_freelist)
     {
-        log_error("Failed to resize freelist");
-        memory_free_c(new_block, nodes_size, MEMORY_ALLOCATION_TYPE_DYNAMIC, MEMORY_TAG_RENDERER);
-        return false;
+        u64 nodes_size = freelist_get_nodes_size(new_size);
+        void* old_block = NULL;
+        void* new_block = memory_alloc_c(nodes_size, MEMORY_ALLOCATION_TYPE_DYNAMIC, MEMORY_TAG_RENDERER);
+        if (!freelist_resize(&buffer->free_list, new_size, new_block, &old_block))
+        {
+            log_error("Failed to resize freelist");
+            memory_free_c(new_block, nodes_size, MEMORY_ALLOCATION_TYPE_DYNAMIC, MEMORY_TAG_RENDERER);
+            return false;
+        }
+        memory_free_c(old_block, buffer->free_list_size, MEMORY_ALLOCATION_TYPE_DYNAMIC, MEMORY_TAG_RENDERER);
+        buffer->free_list_size = nodes_size;
+        buffer->freelist_memory = new_block;
     }
-    memory_free_c(old_block, buffer->free_list_size, MEMORY_ALLOCATION_TYPE_DYNAMIC, MEMORY_TAG_RENDERER);
-    buffer->free_list_size = nodes_size;
-    buffer->freelist_memory = new_block;
+
     buffer->size = new_size;
 
     VkBufferCreateInfo buffer_info = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
@@ -207,6 +216,12 @@ bool vulkan_buffer_alloc(VulkanBuffer* buffer, u64 size, u64* out_offset)
         return false;
     }
 
+    if (!buffer->has_freelist)
+    {
+        log_warning("VulkanBuffer does not have a freelist");
+        *out_offset = 0;
+        return true;
+    }
     return freelist_alloc(&buffer->free_list, size, out_offset);
 }
 
@@ -221,6 +236,12 @@ bool vulkan_buffer_free(VulkanBuffer* buffer, u64 size, u64 offset)
     {
         log_error("VulkanBuffer requested size must be greater than 0");
         return false;
+    }
+
+    if (!buffer->has_freelist)
+    {
+        log_warning("VulkanBuffer does not have a freelist");
+        return true;
     }
 
     return freelist_free(&buffer->free_list, size, offset);
@@ -251,6 +272,11 @@ void vulkan_buffer_copy(
 
 void freelist_cleanup(VulkanBuffer* buffer)
 {
+    if (!buffer->has_freelist)
+    {
+        return;
+    }
+
     freelist_destroy(&buffer->free_list);
     memory_free_c(buffer->freelist_memory, buffer->free_list_size, MEMORY_ALLOCATION_TYPE_DYNAMIC, MEMORY_TAG_RENDERER);
     buffer->freelist_memory = NULL;

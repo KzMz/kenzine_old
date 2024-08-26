@@ -11,16 +11,10 @@ bool vulkan_renderer_backend_end_frame(RendererBackend* backend, f64 delta_time)
 bool vulkan_renderer_begin_renderpass(RendererBackend* backend, u8 renderpass_id);
 bool vulkan_renderer_end_renderpass(RendererBackend* backend, u8 renderpass_id);
 
-void vulkan_renderer_update_global_world_uniform(Mat4 projection, Mat4 view, Vec3 view_position, Vec4 ambient_color, i32 mode);
-void vulkan_renderer_update_global_ui_uniform(Mat4 projection, Mat4 view, i32 mode);
-
 void vulkan_renderer_backend_resize(RendererBackend* backend, i32 width, i32 height);
 
 void vulkan_renderer_create_texture(const u8* pixels, Texture* texture);
 void vulkan_renderer_destroy_texture(Texture* texture);
-
-bool vulkan_renderer_create_material(Material* material);
-void vulkan_renderer_destroy_material(Material* material);
 
 bool vulkan_renderer_create_geometry(
     Geometry* geometry, 
@@ -29,3 +23,16 @@ bool vulkan_renderer_create_geometry(
 );
 void vulkan_renderer_draw_geometry(GeometryRenderData data);
 void vulkan_renderer_destroy_geometry(Geometry* geometry);
+
+bool vulkan_renderer_create_shader(struct Shader* shader, u8 renderpass_id, u8 stage_count, const char** stage_files, ShaderStage* stages);
+void vulkan_renderer_destroy_shader(struct Shader* shader);
+
+bool vulkan_renderer_shader_init(struct Shader* shader);
+bool vulkan_renderer_shader_use(struct Shader* shader);
+bool vulkan_renderer_shader_bind_globals(struct Shader* shader);
+bool vulkan_renderer_shader_bind_instance(struct Shader* shader, u64 instance_id);
+bool vulkan_renderer_shader_apply_globals(struct Shader* shader);
+bool vulkan_renderer_shader_apply_instance(struct Shader* shader);
+bool vulkan_renderer_shader_acquire_instance_resources(struct Shader* shader, u64* out_instance_id);
+bool vulkan_renderer_shader_release_instance_resources(struct Shader* shader, u64 instance_id);
+bool vulkan_renderer_set_uniform(struct Shader* shader, struct ShaderUniform* uniform, const void* value);

@@ -7,6 +7,7 @@
 #define TEXTURE_NAME_MAX_LENGTH 512
 #define MATERIAL_NAME_MAX_LENGTH 256
 #define GEOMETRY_NAME_MAX_LENGTH 256
+#define SHADER_NAME_MAX_LENGTH 512
 
 #define MAX_IMAGE_PATH_LENGTH 512
 
@@ -17,6 +18,7 @@ typedef enum ResourceType
     RESOURCE_TYPE_IMAGE,
     RESOURCE_TYPE_MATERIAL,
     RESOURCE_TYPE_STATIC_MESH,
+    RESOURCE_TYPE_SHADER,
     RESOURCE_TYPE_CUSTOM
 } ResourceType;
 
@@ -70,16 +72,10 @@ typedef struct TextureMap
     TextureUsage usage;
 } TextureMap;
 
-typedef enum MaterialType
-{
-    MATERIAL_TYPE_WORLD,
-    MATERIAL_TYPE_UI
-} MaterialType;
-
 typedef struct MaterialResourceData
 {
     char name[MATERIAL_NAME_MAX_LENGTH];
-    MaterialType type;
+    char shader_name[SHADER_NAME_MAX_LENGTH];
     bool auto_release;
     Vec4 diffuse_color;
     char diffuse_map_name[TEXTURE_NAME_MAX_LENGTH];
@@ -90,10 +86,10 @@ typedef struct Material
     u64 id;
     u32 generation;
     u64 internal_id;
-    MaterialType type;
     char name[MATERIAL_NAME_MAX_LENGTH];
     Vec4 diffuse_color;
     TextureMap diffuse_map;
+    u64 shader_id;
 } Material;
 
 typedef struct Geometry
@@ -104,3 +100,86 @@ typedef struct Geometry
     char name[GEOMETRY_NAME_MAX_LENGTH];
     Material* material;
 } Geometry;
+
+typedef enum ShaderStage
+{
+    SHADER_STAGE_VERTEX = 0x01,
+    SHADER_STAGE_GEOMETRY = 0x02,
+    SHADER_STAGE_FRAGMENT = 0x04,
+    SHADER_STAGE_COMPUTE = 0x08
+} ShaderStage;
+
+typedef enum ShaderAttributeType {
+    SHADER_ATTRIB_TYPE_FLOAT32 = 0U,
+    SHADER_ATTRIB_TYPE_FLOAT32_2,
+    SHADER_ATTRIB_TYPE_FLOAT32_3,
+    SHADER_ATTRIB_TYPE_FLOAT32_4,
+    SHADER_ATTRIB_TYPE_MATRIX_4,
+    SHADER_ATTRIB_TYPE_INT8,
+    SHADER_ATTRIB_TYPE_UINT8,
+    SHADER_ATTRIB_TYPE_INT16,
+    SHADER_ATTRIB_TYPE_UINT16,
+    SHADER_ATTRIB_TYPE_INT32,
+    SHADER_ATTRIB_TYPE_UINT32,
+} ShaderAttributeType;
+
+typedef enum ShaderUniformType {
+    SHADER_UNIFORM_TYPE_FLOAT32 = 0U,
+    SHADER_UNIFORM_TYPE_FLOAT32_2,
+    SHADER_UNIFORM_TYPE_FLOAT32_3,
+    SHADER_UNIFORM_TYPE_FLOAT32_4,
+    SHADER_UNIFORM_TYPE_INT8,
+    SHADER_UNIFORM_TYPE_UINT8,
+    SHADER_UNIFORM_TYPE_INT16,
+    SHADER_UNIFORM_TYPE_UINT16,
+    SHADER_UNIFORM_TYPE_INT32,
+    SHADER_UNIFORM_TYPE_UINT32,
+    SHADER_UNIFORM_TYPE_MATRIX_4,
+    SHADER_UNIFORM_TYPE_SAMPLER,
+    SHADER_UNIFORM_TYPE_CUSTOM = 255U
+} ShaderUniformType;
+
+typedef enum ShaderScope {
+    SHADER_SCOPE_GLOBAL = 0,
+    SHADER_SCOPE_INSTANCE,
+    SHADER_SCOPE_LOCAL
+} ShaderScope;
+
+typedef struct ShaderAttributeConfig
+{
+    u8 name_length;
+    char* name;
+    u8 size;
+    ShaderAttributeType type;
+} ShaderAttributeConfig;
+
+typedef struct ShaderUniformConfig
+{
+    u8 name_length;
+    char* name;
+    u8 size;
+    u64 location;
+    ShaderUniformType type;
+    ShaderScope scope;
+} ShaderUniformConfig;
+
+typedef struct ShaderConfig
+{
+    char* name;
+
+    bool use_instances;
+    bool use_local;
+
+    u8 attribute_count;
+    ShaderAttributeConfig* attributes;
+
+    u8 uniform_count;
+    ShaderUniformConfig* uniforms;
+
+    char* renderpass_name;
+
+    u8 stage_count;
+    ShaderStage* stages;
+    char** stage_names;
+    const char** stage_files;
+} ShaderConfig;

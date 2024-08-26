@@ -8,6 +8,7 @@
 #include "resources/loaders/image_loader.h"
 #include "resources/loaders/material_loader.h"
 #include "resources/loaders/binary_loader.h"
+#include "resources/loaders/shader_loader.h"
 
 typedef struct ResourceSystemState
 {
@@ -46,6 +47,7 @@ bool resource_system_init(void* state, ResourceSystemConfig config)
     resource_system_register_loader(binary_resource_loader_create());
     resource_system_register_loader(image_resource_loader_create());
     resource_system_register_loader(material_resource_loader_create());
+    resource_system_register_loader(shader_resource_loader_create());
 
     log_info("Resource system initialized. [Base path: %s]", config.asset_base_path);
     return true;

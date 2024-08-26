@@ -1,6 +1,7 @@
 #include "renderer_backend.h"
 
 #include "vulkan/vulkan_backend.h"
+#include "core/memory.h"
 
 bool renderer_backend_create(RendererBackendType type, RendererBackend* out_backend)
 {
@@ -11,17 +12,24 @@ bool renderer_backend_create(RendererBackendType type, RendererBackend* out_back
         out_backend->resize = vulkan_renderer_backend_resize;
         out_backend->begin_frame = vulkan_renderer_backend_begin_frame;
         out_backend->end_frame = vulkan_renderer_backend_end_frame;
-        out_backend->update_global_world_uniform = vulkan_renderer_update_global_world_uniform;
-        out_backend->update_global_ui_uniform = vulkan_renderer_update_global_ui_uniform;
         out_backend->create_geometry = vulkan_renderer_create_geometry;
         out_backend->draw_geometry = vulkan_renderer_draw_geometry;
         out_backend->destroy_geometry = vulkan_renderer_destroy_geometry;
         out_backend->create_texture = vulkan_renderer_create_texture;
         out_backend->destroy_texture = vulkan_renderer_destroy_texture;
-        out_backend->create_material = vulkan_renderer_create_material;
-        out_backend->destroy_material = vulkan_renderer_destroy_material;
         out_backend->begin_renderpass = vulkan_renderer_begin_renderpass;
         out_backend->end_renderpass = vulkan_renderer_end_renderpass;
+        out_backend->create_shader = vulkan_renderer_create_shader;
+        out_backend->destroy_shader = vulkan_renderer_destroy_shader;
+        out_backend->init_shader = vulkan_renderer_shader_init;
+        out_backend->use_shader = vulkan_renderer_shader_use;
+        out_backend->bind_shader_globals = vulkan_renderer_shader_bind_globals;
+        out_backend->bind_shader_instance = vulkan_renderer_shader_bind_instance;
+        out_backend->apply_shader_instance = vulkan_renderer_shader_apply_instance;
+        out_backend->apply_shader_globals = vulkan_renderer_shader_apply_globals;
+        out_backend->acquire_shader_instance_resources = vulkan_renderer_shader_acquire_instance_resources;
+        out_backend->release_shader_instance_resources = vulkan_renderer_shader_release_instance_resources;
+        out_backend->set_shader_uniform = vulkan_renderer_set_uniform;
 
         return true;
     }
@@ -31,20 +39,5 @@ bool renderer_backend_create(RendererBackendType type, RendererBackend* out_back
 
 void renderer_backend_destroy(RendererBackend* backend)
 {
-    backend->init = 0;
-    backend->shutdown = 0;
-    backend->resize = 0;
-    backend->begin_frame = 0;
-    backend->end_frame = 0;
-    backend->update_global_world_uniform = 0;
-    backend->update_global_ui_uniform = 0;
-    backend->create_geometry = 0;
-    backend->draw_geometry = 0;
-    backend->destroy_geometry = 0;
-    backend->create_texture = 0;
-    backend->destroy_texture = 0;
-    backend->create_material = 0;
-    backend->destroy_material = 0;
-    backend->begin_renderpass = 0;
-    backend->end_renderpass = 0;
+    memory_zero(backend, sizeof(RendererBackend));
 }

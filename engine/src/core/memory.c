@@ -48,6 +48,7 @@ static const char* memory_strings[MEMORY_TAG_COUNT] =
     "MATERIALINSTANCE",
     "BINARY\t\t",
     "TEXT\t\t",
+    "RESOURCE\t",
     "CUSTOM\t\t",
 };
 

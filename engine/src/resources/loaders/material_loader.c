@@ -35,13 +35,12 @@ bool material_loader_load(ResourceLoader* self, const char* name, Resource* out_
     out_resource->full_path = string_clone(path);
 
     MaterialResourceData* resource_data = (MaterialResourceData*) memory_alloc(sizeof(MaterialResourceData), MEMORY_TAG_MATERIALINSTANCE);
-    resource_data->type = MATERIAL_TYPE_WORLD;
     resource_data->auto_release = true;
     resource_data->diffuse_color = vec4_one(); 
     resource_data->diffuse_map_name[0] = 0;
     string_copy_n(resource_data->name, name, MATERIAL_NAME_MAX_LENGTH);
 
-    char buffer[4096] = {0};
+    char buffer[4096 * 2] = {0};
     u64 actual_size = 0;
     file_get_contents(&file_handle, (char*) &buffer, &actual_size);
     file_close(&file_handle);
@@ -68,36 +67,21 @@ bool material_loader_load(ResourceLoader* self, const char* name, Resource* out_
         string_copy_n(resource_data->diffuse_map_name, diffuse_map_node->string_, TEXTURE_NAME_MAX_LENGTH);
     }
 
-    MaterialType type = MATERIAL_TYPE_WORLD;
-    JsonNode* type_node = json_find_member(root, "type");
+    JsonNode* type_node = json_find_member(root, "shader");
     if (type_node == NULL)
     {
-        log_error("Material config missing type field: %s. Defaulting to WORLD", path);
+        log_error("Material config missing shader field: %s.", path);
     } 
     else 
     {
         if (type_node->tag != JSON_STRING)
         {
-            log_error("Material config type field is not a string: %s", path);
+            log_error("Material config shader field is not a string: %s", path);
             return false;
         }
 
-        if (string_equals_nocase(type_node->string_, "WORLD"))
-        {
-            type = MATERIAL_TYPE_WORLD;
-        }
-        else if (string_equals_nocase(type_node->string_, "UI"))
-        {
-            type = MATERIAL_TYPE_UI;
-        }
-        else
-        {
-            log_error("Material config type field is not a valid type: %s", path);
-            return false;
-        }
+        string_copy_n(resource_data->shader_name, type_node->string_, MATERIAL_NAME_MAX_LENGTH);        
     }
-
-    resource_data->type = type;
 
     Vec4 diffuse_color = vec4_zero();
     JsonNode* diffuse_color_node = json_find_member(root, "diffuse_color");

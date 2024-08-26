@@ -19,6 +19,12 @@ typedef signed long long i64;
 typedef float f32;
 typedef double f64;
 
+typedef struct Range
+{
+    u64 offset;
+    u64 size;
+} Range;
+
 // Static assertions
 #if defined(__clang__) || defined(__gcc__)
 #define STATIC_ASSERT _Static_assert
@@ -98,8 +104,9 @@ if defined(__ANDROID__)
 #define KENZINE_NO_INLINE 
 #endif
 
-#define INVALID_ID 0xFFFFFFFF
-#define MAX_ID 0xFFFFFFFF
+#define INVALID_ID 4294967295U
+#define INVALID_ID_U16 65535U
+#define INVALID_ID_U8 255U
 
 #define is_same_type(a, b) (__builtin_types_compatible_p(__typeof__(a), __typeof__(b)))
 #define is_pointer_or_array(p) (__builtin_classify_type(p) == 5)
@@ -109,3 +116,13 @@ if defined(__ANDROID__)
 #define GIGABYTES(value) ((value) * 1024 * 1024 * 1024)
 #define MEGABYTES(value) ((value) * 1024 * 1024)
 #define KILOBYTES(value) ((value) * 1024)
+
+KENZINE_INLINE u64 get_aligned(u64 operand, u64 granularity)
+{
+    return (operand + granularity - 1) & ~(granularity - 1);
+}
+
+KENZINE_INLINE Range get_aligned_range(u64 offset, u64 size, u64 granularity)
+{
+    return (Range) { get_aligned(offset, granularity), get_aligned(size, granularity) };
+}

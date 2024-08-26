@@ -1,5 +1,6 @@
 #include "lib/string.h"
 #include "core/memory.h"
+#include "lib/containers/dyn_array.h"
 
 #include <string.h>
 #include <stdarg.h>
@@ -19,7 +20,8 @@ char* string_clone(const char* str)
 {
     u64 length = string_length(str);
     char* copy = memory_alloc(length + 1, MEMORY_TAG_STRING);
-    memory_copy(copy, str, length + 1);
+    memory_copy(copy, str, length);
+    copy[length] = 0;
     return copy;
 }
 
@@ -143,4 +145,105 @@ char* string_empty(char* str)
 
     str[0] = 0;
     return str;
+}
+
+u32 string_split(const char* str, char delimiter, char*** str_darray, bool trim_entries, bool include_empty)
+{
+    if (str == NULL || str_darray == NULL)
+    {
+        return 0;
+    }
+
+    char* result = NULL;
+    u32 trimmed_length = 0;
+    u32 current_length = 0;
+    u32 count = 0;
+    u32 length = string_length(str);
+    char buffer[16384];
+    
+    for (u32 i = 0; i < length; ++i)
+    {
+        char c = str[i];
+        if (c == delimiter)
+        {
+            buffer[current_length] = 0;
+            result = buffer;
+            trimmed_length = current_length;
+            
+            if (trim_entries && current_length > 0)
+            {
+                result = string_trim(result);
+                trimmed_length = string_length(result);
+            }
+
+            if (trimmed_length > 0 || include_empty)
+            {
+                char* entry = memory_alloc(sizeof(char) * (trimmed_length + 1), MEMORY_TAG_STRING);
+                if (trimmed_length == 0)
+                {
+                    entry[0] = 0;
+                }
+                else 
+                {
+                    string_copy_n(entry, result, trimmed_length);
+                    entry[trimmed_length] = 0;
+                }
+                char** a = *str_darray;
+                dynarray_push(a, entry);
+                *str_darray = a;
+                count++;
+            }
+
+            memory_zero(buffer, 16384 * sizeof(char));
+            current_length = 0;
+            continue;
+        }
+
+        buffer[current_length++] = c;
+    }
+
+    result = buffer;
+    trimmed_length = current_length;
+
+    if (trim_entries && current_length > 0)
+    {
+        result = string_trim(result);
+        trimmed_length = string_length(result);
+    }
+    if (trimmed_length > 0 || include_empty)
+    {
+        char* entry = memory_alloc(sizeof(char) * (trimmed_length + 1), MEMORY_TAG_STRING);
+        if (trimmed_length == 0)
+        {
+            entry[0] = 0;
+        }
+        else 
+        {
+            string_copy_n(entry, result, trimmed_length);
+            entry[trimmed_length] = 0;
+        }
+        char** a = *str_darray;
+        dynarray_push(a, entry);
+        *str_darray = a;
+        count++;
+    }
+
+    return count;
+}
+
+void string_free_split(char** str_darray)
+{
+    if (str_darray == NULL)
+    {
+        return;
+    }
+
+    u32 count = dynarray_length(str_darray);
+    for (u32 i = 0; i < count; ++i)
+    {
+        u32 len = string_length(str_darray[i]);
+        memory_free(str_darray[i], (len + 1) * sizeof(char), MEMORY_TAG_STRING);
+    }
+
+    dynarray_destroy(str_darray);
 }

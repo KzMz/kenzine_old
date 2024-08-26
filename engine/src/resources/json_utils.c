@@ -19,6 +19,8 @@ const char* resource_type_to_string(ResourceType type)
             return "image";
         case RESOURCE_TYPE_STATIC_MESH:
             return "static_mesh";
+        case RESOURCE_TYPE_SHADER:
+            return "shader";
         case RESOURCE_TYPE_CUSTOM:
             return "custom";
         default:
@@ -109,4 +111,25 @@ bool json_utils_get_resource_metadata(ResourceType type, struct JsonNode* root, 
     }
 
     return true;
+}
+
+const char* json_utils_get_string(struct JsonNode* parent, const char* key)
+{
+    if (parent == NULL)
+    {
+        log_error("json node is NULL");
+        return NULL;
+    }
+    JsonNode* node = json_find_member(parent, key);
+    if (node == NULL)
+    {
+        log_error("Resource config missing %s field", key);
+        return NULL;
+    }
+    if (node->tag != JSON_STRING)
+    {
+        log_error("Resource config %s field is not a string", key);
+        return NULL;
+    }
+    return node->string_;
 }

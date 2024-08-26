@@ -5,7 +5,7 @@
         "name": "test material",
         "version": "0.1"
     },
-    "type": "world",
+    "shader": "Shader.Builtin.Material",
     "diffuse_color": 
     {
         "r": 1.0,

@@ -5,7 +5,7 @@
         "name": "test ui material",
         "version": "0.1"
     },
-    "type": "ui",
+    "shader": "Shader.Builtin.UI",
     "diffuse_color": 
     {
         "r": 1.0,

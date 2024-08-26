@@ -1,5 +1,8 @@
 {
     "files.associations": {
+        "*.mat": "json",
+        "*.glsl": "glsl",
+        "*.shader": "json",
         "atomic": "c",
         "charconv": "c",
         "cstring": "c",
@@ -38,6 +41,9 @@
         "image_loader.h": "c",
         "text_loader.h": "c",
         "vulkan_material_shader.h": "c",
-        "loader_utils.h": "c"
+        "loader_utils.h": "c",
+        "iosfwd": "cpp",
+        "xlocbuf": "cpp",
+        "vulkan_renderpass.h": "c"
     }
 }

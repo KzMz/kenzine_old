@@ -4,6 +4,12 @@
 #include "lib/math/math_defines.h"
 #include "resources/resource_defines.h"
 
+#define BUILTIN_SHADER_NAME_MATERIAL "Shader.Builtin.Material"
+#define BUILTIN_SHADER_NAME_UI "Shader.Builtin.UI"
+
+struct Shader;
+struct ShaderUniform;
+
 typedef enum RendererBackendType
 {
     RENDERER_BACKEND_TYPE_VULKAN = 0,
@@ -32,12 +38,8 @@ typedef void (*RendererBackendShutdown)(struct RendererBackend* backend);
 typedef void (*RendererBackendResize)(struct RendererBackend* backend, i32 width, i32 height);
 typedef bool (*RendererBackendBeginFrame)(struct RendererBackend* backend, f64 delta_time);
 typedef bool (*RendererBackendEndFrame)(struct RendererBackend* backend, f64 delta_time);
-typedef void (*RendererBackendUpdateGlobalWorldUniform)(Mat4 proj, Mat4 view, Vec3 view_position, Vec4 ambient_color, i32 mode);
-typedef void (*RendererBackendUpdateGlobalUiUniform)(Mat4 proj, Mat4 view, i32 mode);
 typedef void (*RendererBackendCreateTexture)(const u8* pixels, Texture* texture);
 typedef void (*RendererBackendDestroyTexture)(Texture* texture);
-typedef bool (*RendererBackendCreateMaterial)(Material* material);
-typedef void (*RendererBackendDestroyMaterial)(Material* material);
 typedef bool (*RendererBackendCreateGeometry)
 (
     Geometry* geometry, 
@@ -48,6 +50,17 @@ typedef void (*RendererBackendDrawGeometry)(GeometryRenderData data);
 typedef void (*RendererBackendDestroyGeometry)(Geometry* geometry);
 typedef bool (*RendererBackendBeginRenderpass)(struct RendererBackend* backend, u8 pass);
 typedef bool (*RendererBackendEndRenderpass)(struct RendererBackend* backend, u8 pass);
+typedef bool (*RendererBackendCreateShader)(struct Shader* shader, u8 renderpass_id, u8 stage_count, const char** stage_files, ShaderStage* stages);
+typedef void (*RendererBackendDestroyShader)(struct Shader* shader);
+typedef bool (*RendererBackendInitShader)(struct Shader* shader);
+typedef bool (*RendererBackendUseShader)(struct Shader* shader);
+typedef bool (*RendererBackendBindShaderGlobals)(struct Shader* shader);
+typedef bool (*RendererBackendBindShaderInstance)(struct Shader* shader, u64 instance_id);
+typedef bool (*RendererBackendApplyShaderGlobals)(struct Shader* shader);  
+typedef bool (*RendererBackendApplyShaderInstance)(struct Shader* shader);
+typedef bool (*RendererBackendAcquireShaderInstanceResources)(struct Shader* shader, u64* out_instance_id);
+typedef bool (*RendererBackendReleaseShaderInstanceResources)(struct Shader* shader, u64 instance_id);
+typedef bool (*RendererBackendSetShaderUniform)(struct Shader* shader, struct ShaderUniform* uniform, const void* value);
 
 typedef struct RendererBackend 
 {
@@ -61,9 +74,6 @@ typedef struct RendererBackend
     RendererBackendBeginFrame begin_frame;
     RendererBackendEndFrame end_frame;
 
-    RendererBackendUpdateGlobalWorldUniform update_global_world_uniform;
-    RendererBackendUpdateGlobalUiUniform update_global_ui_uniform;
-
     RendererBackendCreateGeometry create_geometry;
     RendererBackendDrawGeometry draw_geometry;
     RendererBackendDestroyGeometry destroy_geometry;
@@ -71,11 +81,20 @@ typedef struct RendererBackend
     RendererBackendCreateTexture create_texture;
     RendererBackendDestroyTexture destroy_texture;
 
-    RendererBackendCreateMaterial create_material;
-    RendererBackendDestroyMaterial destroy_material;
-
     RendererBackendBeginRenderpass begin_renderpass;
     RendererBackendEndRenderpass end_renderpass;
+
+    RendererBackendCreateShader create_shader;
+    RendererBackendDestroyShader destroy_shader;
+    RendererBackendInitShader init_shader;
+    RendererBackendUseShader use_shader;
+    RendererBackendBindShaderGlobals bind_shader_globals;
+    RendererBackendBindShaderInstance bind_shader_instance;
+    RendererBackendApplyShaderInstance apply_shader_instance;
+    RendererBackendApplyShaderGlobals apply_shader_globals;
+    RendererBackendAcquireShaderInstanceResources acquire_shader_instance_resources;
+    RendererBackendReleaseShaderInstanceResources release_shader_instance_resources;
+    RendererBackendSetShaderUniform set_shader_uniform;
 } RendererBackend;
 
 typedef struct RenderPacket 

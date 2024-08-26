@@ -13,6 +13,7 @@
 #include "systems/material_system.h"
 #include "systems/geometry_system.h"
 #include "systems/resource_system.h"
+#include "systems/shader_system.h"
 
 #include "lib/math/math_defines.h"
 #include "lib/math/mat4.h"
@@ -41,6 +42,9 @@ typedef struct AppState
 
     void* resource_system_state;
     u64 resource_system_state_size;
+
+    void* shader_system_state;
+    u64 shader_system_state_size;
 
     void* renderer_state;
     u64 renderer_state_size;
@@ -146,6 +150,21 @@ KENZINE_API bool app_init(Game* game)
     if (!resource_system_init(resource_system_state, resource_config))
     {
         log_error("Failed to initialize resource system");
+        return false;
+    }
+
+    ShaderSystemConfig shader_config = {0};
+    shader_config.max_shader_count = 1024;
+    shader_config.max_uniform_count = 128;
+    shader_config.max_global_textures = 31;
+    shader_config.max_instance_textures = 31;
+
+    app_state->shader_system_state_size = shader_system_get_state_size(shader_config);
+    void* shader_system_state = memory_alloc(app_state->shader_system_state_size, MEMORY_TAG_APP);
+    app_state->shader_system_state = shader_system_state;
+    if (!shader_system_init(shader_system_state, shader_config))
+    {
+        log_error("Failed to initialize shader system");
         return false;
     }
 
@@ -348,8 +367,8 @@ KENZINE_API void app_shutdown(void)
 
     event_system_shutdown();
 
+    shader_system_shutdown();
     renderer_shutdown();
-
     resource_system_shutdown();
 
     platform_shutdown();

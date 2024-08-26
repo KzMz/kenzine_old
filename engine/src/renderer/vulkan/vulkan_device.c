@@ -306,10 +306,18 @@ bool physical_device_meets_requirements(
     {
         u8 current_transfer_score = 0;
 
-        if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        if (out_queue_info->graphics_family_index == -1 && queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
             out_queue_info->graphics_family_index = i;
             ++current_transfer_score;
+
+            VkBool32 present_support = VK_FALSE;
+            VK_ASSERT(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support));
+            if (present_support)
+            {
+                out_queue_info->present_family_index = i;
+                ++current_transfer_score;
+            }
         }
 
         if (queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
@@ -326,12 +334,23 @@ bool physical_device_meets_requirements(
                 min_transfer_score = current_transfer_score;
             }
         }
+    }
 
-        VkBool32 present_support = VK_FALSE;
-        VK_ASSERT(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support));
-        if (present_support)
+    if (out_queue_info->present_family_index == -1)
+    {
+        for (u32 i = 0; i < queue_family_count; ++i)
         {
-            out_queue_info->present_family_index = i;
+            VkBool32 present_support = VK_FALSE;
+            VK_ASSERT(vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support));
+            if (present_support)
+            {
+                out_queue_info->present_family_index = i;
+                if (out_queue_info->present_family_index != out_queue_info->graphics_family_index)
+                {
+                    log_warning("Present queue family is different from graphics queue family.");
+                }
+                break;
+            }
         }
     }
 

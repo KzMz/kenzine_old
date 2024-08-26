@@ -8,6 +8,7 @@ bool vulkan_buffer_create(
     VkBufferUsageFlagBits usage,
     u32 memory_property_flags,
     bool bind,
+    bool has_freelist,
     VulkanBuffer* out_buffer
 );
 
