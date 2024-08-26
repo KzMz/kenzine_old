@@ -386,3 +386,251 @@ GeometryConfig geometry_system_generate_plane_config(
 
     return config;
 }
+
+GeometryConfig geometry_system_generate_cube_config(
+    f32 width, f32 height, f32 depth,
+    f32 tile_x, f32 tile_y,
+    const char* name, 
+    const char* material_name
+)
+{
+    if (width == 0)
+    {
+        log_warning("Width must be greater than 0");
+        width = 1;
+    }
+    if (height == 0)
+    {
+        log_warning("Height must be greater than 0");
+        height = 1;
+    }
+    if (depth == 0)
+    {
+        log_warning("Depth must be greater than 0");
+        depth = 1;
+    }
+    if (tile_x == 0)
+    {
+        log_warning("Tile x must be greater than 0");
+        tile_x = 1;
+    }
+    if (tile_y == 0)
+    {
+        log_warning("Tile y must be greater than 0");
+        tile_y = 1;
+    }
+
+    GeometryConfig config;
+    config.vertex_size = sizeof(Vertex3d);
+    config.vertex_count = 4 * 6;
+    config.vertices = memory_alloc(sizeof(Vertex3d) * config.vertex_count, MEMORY_TAG_GEOMETRY);
+    config.index_size = sizeof(u32);
+    config.index_count = 6 * 6;
+    config.indices = memory_alloc(sizeof(u32) * config.index_count, MEMORY_TAG_GEOMETRY);
+
+    f32 half_width = width * 0.5f;
+    f32 half_height = height * 0.5f;
+    f32 half_depth = depth * 0.5f;
+    f32 min_x = -half_width;
+    f32 min_y = -half_height;
+    f32 min_z = -half_depth;
+    f32 max_x = half_width;
+    f32 max_y = half_height;
+    f32 max_z = half_depth;
+    f32 min_uvx = 0;
+    f32 min_uvy = 0;
+    f32 max_uvx = tile_x;
+    f32 max_uvy = tile_y;
+
+    Vertex3d* verts = (Vertex3d*) config.vertices;
+
+    // Front
+    verts[(0 * 4) + 0] = (Vertex3d) 
+    { 
+        .position = { min_x, min_y, max_z },
+        .normal = { 0.0f, 0.0f, 1.0f }, 
+        .texcoord = { min_uvx, min_uvy } 
+    };
+    verts[(0 * 4) + 1] = (Vertex3d) 
+    { 
+        .position = { max_x, max_y, max_z },
+        .normal = { 0.0f, 0.0f, 1.0f }, 
+        .texcoord = { max_uvx, max_uvy } 
+    };
+    verts[(0 * 4) + 2] = (Vertex3d) 
+    { 
+        .position = { min_x, max_y, max_z },
+        .normal = { 0.0f, 0.0f, 1.0f }, 
+        .texcoord = { min_uvx, max_uvy } 
+    };
+    verts[(0 * 4) + 3] = (Vertex3d) 
+    { 
+        .position = { max_x, min_y, max_z },
+        .normal = { 0.0f, 0.0f, 1.0f }, 
+        .texcoord = { max_uvx, min_uvy } 
+    };
+
+    // Back
+    verts[(1 * 4) + 0] = (Vertex3d) 
+    { 
+        .position = { max_x, min_y, min_z },
+        .normal = { 0.0f, 0.0f, -1.0f }, 
+        .texcoord = { min_uvx, min_uvy } 
+    };
+    verts[(1 * 4) + 1] = (Vertex3d) 
+    { 
+        .position = { min_x, max_y, min_z },
+        .normal = { 0.0f, 0.0f, -1.0f }, 
+        .texcoord = { max_uvx, max_uvy } 
+    };
+    verts[(1 * 4) + 2] = (Vertex3d) 
+    { 
+        .position = { max_x, max_y, min_z },
+        .normal = { 0.0f, 0.0f, -1.0f }, 
+        .texcoord = { min_uvx, max_uvy } 
+    };
+    verts[(1 * 4) + 3] = (Vertex3d) 
+    { 
+        .position = { min_x, min_y, min_z },
+        .normal = { 0.0f, 0.0f, -1.0f }, 
+        .texcoord = { max_uvx, min_uvy } 
+    };
+
+    // Left
+    verts[(2 * 4) + 0] = (Vertex3d) 
+    { 
+        .position = { min_x, min_y, min_z },
+        .normal = { -1.0f, 0.0f, 0.0f }, 
+        .texcoord = { min_uvx, min_uvy } 
+    };
+    verts[(2 * 4) + 1] = (Vertex3d) 
+    { 
+        .position = { min_x, max_y, max_z },
+        .normal = { -1.0f, 0.0f, 0.0f }, 
+        .texcoord = { max_uvx, max_uvy } 
+    };
+    verts[(2 * 4) + 2] = (Vertex3d) 
+    { 
+        .position = { min_x, max_y, min_z },
+        .normal = { -1.0f, 0.0f, 0.0f }, 
+        .texcoord = { min_uvx, max_uvy } 
+    };
+    verts[(2 * 4) + 3] = (Vertex3d) 
+    { 
+        .position = { min_x, min_y, max_z },
+        .normal = { -1.0f, 0.0f, 0.0f }, 
+        .texcoord = { max_uvx, min_uvy } 
+    };
+
+    // Right
+    verts[(3 * 4) + 0] = (Vertex3d) 
+    { 
+        .position = { max_x, min_y, max_z },
+        .normal = { 1.0f, 0.0f, 0.0f }, 
+        .texcoord = { min_uvx, min_uvy } 
+    };
+    verts[(3 * 4) + 1] = (Vertex3d) 
+    { 
+        .position = { max_x, max_y, min_z },
+        .normal = { 1.0f, 0.0f, 0.0f }, 
+        .texcoord = { max_uvx, max_uvy } 
+    };
+    verts[(3 * 4) + 2] = (Vertex3d) 
+    { 
+        .position = { max_x, max_y, max_z },
+        .normal = { 1.0f, 0.0f, 0.0f }, 
+        .texcoord = { min_uvx, max_uvy } 
+    };
+    verts[(3 * 4) + 3] = (Vertex3d) 
+    { 
+        .position = { max_x, min_y, min_z },
+        .normal = { 1.0f, 0.0f, 0.0f }, 
+        .texcoord = { max_uvx, min_uvy } 
+    };
+
+    // Bottom
+    verts[(4 * 4) + 0] = (Vertex3d) 
+    { 
+        .position = { max_x, min_y, max_z },
+        .normal = { 0.0f, -1.0f, 0.0f }, 
+        .texcoord = { min_uvx, min_uvy } 
+    };
+    verts[(4 * 4) + 1] = (Vertex3d) 
+    { 
+        .position = { min_x, min_y, min_z },
+        .normal = { 0.0f, -1.0f, 0.0f }, 
+        .texcoord = { max_uvx, max_uvy } 
+    };
+    verts[(4 * 4) + 2] = (Vertex3d) 
+    { 
+        .position = { max_x, min_y, min_z },
+        .normal = { 0.0f, -1.0f, 0.0f }, 
+        .texcoord = { min_uvx, max_uvy } 
+    };
+    verts[(4 * 4) + 3] = (Vertex3d) 
+    { 
+        .position = { min_x, min_y, max_z },
+        .normal = { 0.0f, -1.0f, 0.0f }, 
+        .texcoord = { max_uvx, min_uvy } 
+    };
+
+    // Top
+    verts[(5 * 4) + 0] = (Vertex3d) 
+    { 
+        .position = { min_x, max_y, max_z },
+        .normal = { 0.0f, 1.0f, 0.0f }, 
+        .texcoord = { min_uvx, min_uvy } 
+    };
+    verts[(5 * 4) + 1] = (Vertex3d) 
+    { 
+        .position = { max_x, max_y, min_z },
+        .normal = { 0.0f, 1.0f, 0.0f }, 
+        .texcoord = { max_uvx, max_uvy } 
+    };
+    verts[(5 * 4) + 2] = (Vertex3d) 
+    { 
+        .position = { min_x, max_y, min_z },
+        .normal = { 0.0f, 1.0f, 0.0f }, 
+        .texcoord = { min_uvx, max_uvy } 
+    };
+    verts[(5 * 4) + 3] = (Vertex3d) 
+    { 
+        .position = { max_x, max_y, max_z },
+        .normal = { 0.0f, 1.0f, 0.0f }, 
+        .texcoord = { max_uvx, min_uvy } 
+    };
+
+    u32* indices = (u32*) config.indices;
+    for (u32 i = 0; i < 6; ++i)
+    {
+        u64 v_offset = i * 4;
+        u64 i_offset = i * 6;
+
+        indices[i_offset + 0] = v_offset + 0;
+        indices[i_offset + 1] = v_offset + 1;
+        indices[i_offset + 2] = v_offset + 2;
+        indices[i_offset + 3] = v_offset + 0;
+        indices[i_offset + 4] = v_offset + 3;
+        indices[i_offset + 5] = v_offset + 1;
+    }
+
+    if (name && string_length(name) > 0)
+    {
+        string_copy_n(config.name, name, GEOMETRY_NAME_MAX_LENGTH);
+    }
+    else
+    {
+        string_copy_n(config.name, DEFAULT_GEOMETRY_NAME, GEOMETRY_NAME_MAX_LENGTH);
+    }
+
+    if (material_name && string_length(material_name) > 0)
+    {
+        string_copy_n(config.material_name, material_name, MATERIAL_NAME_MAX_LENGTH);
+    }
+    else
+    {
+        string_copy_n(config.material_name, DEFAULT_MATERIAL_NAME, MATERIAL_NAME_MAX_LENGTH);
+    }
+
+    return config;
+}

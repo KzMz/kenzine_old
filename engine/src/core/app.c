@@ -17,6 +17,7 @@
 
 #include "lib/math/math_defines.h"
 #include "lib/math/mat4.h"
+#include "lib/math/quat.h"
 
 typedef struct AppState
 {
@@ -211,11 +212,14 @@ KENZINE_API bool app_init(Game* game)
         return false;
     }
 
-    GeometryConfig plane_config = geometry_system_generate_plane_config(10.0f, 10.0f, 5, 5, 2.0f, 2.0f, "test geometry", "test_material");
-    app_state->test_geometry = geometry_system_acquire_from_config(plane_config, true);
+    //GeometryConfig plane_config = geometry_system_generate_plane_config(10.0f, 10.0f, 5, 5, 2.0f, 2.0f, "test geometry", "test_material");
+    //app_state->test_geometry = geometry_system_acquire_from_config(plane_config, true);
 
-    memory_free(plane_config.vertices, sizeof(Vertex3d) * plane_config.vertex_count, MEMORY_TAG_APP);
-    memory_free(plane_config.indices, sizeof(u32) * plane_config.index_count, MEMORY_TAG_APP);
+    GeometryConfig cube_config = geometry_system_generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material");
+    app_state->test_geometry = geometry_system_acquire_from_config(cube_config, true);
+
+    memory_free(cube_config.vertices, sizeof(Vertex3d) * cube_config.vertex_count, MEMORY_TAG_APP);
+    memory_free(cube_config.indices, sizeof(u32) * cube_config.index_count, MEMORY_TAG_APP);
 
     GeometryConfig ui_config;
     ui_config.vertex_count = 4;
@@ -300,16 +304,21 @@ KENZINE_API bool app_run(void)
             
             GeometryRenderData render_data = {0};
             render_data.geometry = app_state->test_geometry;
-            render_data.model = mat4_identity();
+            //render_data.model = mat4_identity();
+
+            static f32 angle = 0;
+            angle += (1.0f * delta_time);
+            Quat rot = quat_from_axis_angle((Vec3) { 0, 1, 0 }, angle, true);
+            render_data.model = quat_to_mat4(rot);
 
             packet.geometries = &render_data;
             packet.geometry_count = 1;
 
             GeometryRenderData ui_render_data = {0};
-            ui_render_data.geometry = app_state->test_ui_geometry;
+            ui_render_data.geometry = NULL;
             ui_render_data.model = mat4_translation((Vec3) { 0, 0, 0 });
 
-            packet.ui_geometry_count = 1;
+            packet.ui_geometry_count = 0;
             packet.ui_geometries = &ui_render_data;
 
             renderer_draw_frame(&packet);

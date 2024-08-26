@@ -16,6 +16,7 @@ typedef struct MaterialShaderUniformLocations
 {
     u16 projection;
     u16 view;
+    u16 ambient_color;
     u16 diffuse_color;
     u16 diffuse_texture;
     u16 model;
@@ -207,6 +208,7 @@ Material* material_system_acquire_from_config(MaterialResourceData config)
             material_system_state->material_shader_id = shader->id;
             material_system_state->material_locations.projection = shader_system_uniform_index(shader, "projection");
             material_system_state->material_locations.view = shader_system_uniform_index(shader, "view");
+            material_system_state->material_locations.ambient_color = shader_system_uniform_index(shader, "ambient_color");
             material_system_state->material_locations.diffuse_color = shader_system_uniform_index(shader, "diffuse_color");
             material_system_state->material_locations.diffuse_texture = shader_system_uniform_index(shader, "diffuse_texture");
             material_system_state->material_locations.model = shader_system_uniform_index(shader, "model");
@@ -358,17 +360,19 @@ bool create_default_material(MaterialSystemState* state)
         return false;
     }
 
+    state->default_material.shader_id = shader->id;
     return true;
 }
 
 #define MATERIAL_APPLY_OR_FAIL(expr) if (!(expr)) { log_error("Failed to apply material: %s", expr); return false; }
 
-bool material_system_apply_global(u64 shader_id, const Mat4* projection, const Mat4* view)
+bool material_system_apply_global(u64 shader_id, const Mat4* projection, const Mat4* view, const Vec4* ambient_color)
 {
     if (shader_id == material_system_state->material_shader_id)
     {
         MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_id(material_system_state->material_locations.projection, projection));
         MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_id(material_system_state->material_locations.view, view));
+        MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_id(material_system_state->material_locations.ambient_color, ambient_color));
     }
     else if (shader_id == material_system_state->ui_shader_id)
     {

@@ -40,3 +40,10 @@ GeometryConfig geometry_system_generate_plane_config(
     const char* name,
     const char* material_name
 );
+
+GeometryConfig geometry_system_generate_cube_config(
+    f32 width, f32 height, f32 depth,
+    f32 tile_x, f32 tile_y,
+    const char* name, 
+    const char* material_name
+);

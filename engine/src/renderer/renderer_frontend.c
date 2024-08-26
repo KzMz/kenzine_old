@@ -23,6 +23,7 @@ typedef struct RendererState
     RendererBackend backend;
     Mat4 projection;
     Mat4 view;
+    Vec4 ambient_color;
     Mat4 ui_projection;
     Mat4 ui_view;
     f32 near_clip;
@@ -66,6 +67,8 @@ bool renderer_init(void* state, const char* app_name)
     Mat4 view = mat4_translation((Vec3) { 0, 0, 30 });
     renderer_state->view = mat4_inverse(view);
 
+    renderer_state->ambient_color = (Vec4) { 0.25f, 0.25f, 0.25f, 1.0f };
+
     renderer_state->ui_projection = mat4_proj_orthographic(0, 1280.0f, 720.0f, 0, -100.0f, 100.0f);
     renderer_state->ui_view = mat4_inverse(mat4_identity());
 
@@ -100,7 +103,7 @@ bool renderer_draw_frame(RenderPacket* packet)
             return false;
         }
 
-        if (!material_system_apply_global(renderer_state->material_shader_id, &renderer_state->projection, &renderer_state->view))
+        if (!material_system_apply_global(renderer_state->material_shader_id, &renderer_state->projection, &renderer_state->view, &renderer_state->ambient_color))
         {
             log_error("Failed to apply global material shader uniforms. Render frame failed.");
             return false;
@@ -148,7 +151,7 @@ bool renderer_draw_frame(RenderPacket* packet)
             return false;
         }
 
-        if (!material_system_apply_global(renderer_state->ui_shader_id, &renderer_state->ui_projection, &renderer_state->ui_view))
+        if (!material_system_apply_global(renderer_state->ui_shader_id, &renderer_state->ui_projection, &renderer_state->ui_view, NULL))
         {
             log_error("Failed to apply global ui shader uniforms. Render frame failed.");
             return false;

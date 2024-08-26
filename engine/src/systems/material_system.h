@@ -20,6 +20,6 @@ void material_system_release(const char* name);
 
 Material* material_system_get_default(void);
 
-bool material_system_apply_global(u64 shader_id, const Mat4* projection, const Mat4* view);
+bool material_system_apply_global(u64 shader_id, const Mat4* projection, const Mat4* view, const Vec4* ambient_color);
 bool material_system_apply_instance(Material* material);
 bool material_system_apply_local(Material* material, const Mat4* model);

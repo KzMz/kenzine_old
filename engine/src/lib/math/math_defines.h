@@ -81,5 +81,6 @@ typedef struct Vertex2d
 typedef struct Vertex3d 
 {
     Vec3 position;
+    Vec3 normal;
     Vec2 texcoord;
 } Vertex3d;

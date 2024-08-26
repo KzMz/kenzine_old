@@ -27,6 +27,10 @@
             "name": "in_position"
         },
         {
+            "type": "vec3",
+            "name": "in_normal"
+        },
+        {
             "type": "vec2",
             "name": "in_texcoord"
         }
@@ -43,6 +47,11 @@
             "type": "mat4",
             "scope": "global",
             "name": "view"
+        },
+        {
+            "type": "vec4",
+            "scope": "global",
+            "name": "ambient_color"
         },
         {
             "type": "vec4",
