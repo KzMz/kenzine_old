@@ -24,6 +24,7 @@ typedef struct RendererState
     Mat4 projection;
     Mat4 view;
     Vec4 ambient_color;
+    Vec3 view_position;
     Mat4 ui_projection;
     Mat4 ui_view;
     f32 near_clip;
@@ -103,7 +104,7 @@ bool renderer_draw_frame(RenderPacket* packet)
             return false;
         }
 
-        if (!material_system_apply_global(renderer_state->material_shader_id, &renderer_state->projection, &renderer_state->view, &renderer_state->ambient_color))
+        if (!material_system_apply_global(renderer_state->material_shader_id, &renderer_state->projection, &renderer_state->view, &renderer_state->ambient_color, &renderer_state->view_position))
         {
             log_error("Failed to apply global material shader uniforms. Render frame failed.");
             return false;
@@ -151,7 +152,7 @@ bool renderer_draw_frame(RenderPacket* packet)
             return false;
         }
 
-        if (!material_system_apply_global(renderer_state->ui_shader_id, &renderer_state->ui_projection, &renderer_state->ui_view, NULL))
+        if (!material_system_apply_global(renderer_state->ui_shader_id, &renderer_state->ui_projection, &renderer_state->ui_view, NULL, NULL))
         {
             log_error("Failed to apply global ui shader uniforms. Render frame failed.");
             return false;
@@ -217,9 +218,10 @@ u64 renderer_get_state_size(void)
     return sizeof(RendererState);
 }
 
-void renderer_set_view(Mat4 view)
+void renderer_set_view(Mat4 view, Vec3 camera_position)
 {
     renderer_state->view = view;
+    renderer_state->view_position = camera_position;
 }
 
 void renderer_create_texture(const u8* pixels, Texture* texture)

@@ -133,7 +133,7 @@ bool game_update(Game* game, f64 delta_time)
 
     update_view_matrix(game);
 
-    renderer_set_view(state->view);
+    renderer_set_view(state->view, state->camera_position);
 
     return true;
 }

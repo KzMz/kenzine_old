@@ -18,6 +18,7 @@
 #include "lib/math/math_defines.h"
 #include "lib/math/mat4.h"
 #include "lib/math/quat.h"
+#include "lib/math/geometry_utils.h"
 
 typedef struct AppState
 {
@@ -216,6 +217,7 @@ KENZINE_API bool app_init(Game* game)
     //app_state->test_geometry = geometry_system_acquire_from_config(plane_config, true);
 
     GeometryConfig cube_config = geometry_system_generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material");
+    geometry_generate_tangents(cube_config.vertex_count, cube_config.vertices, cube_config.index_count, cube_config.indices);
     app_state->test_geometry = geometry_system_acquire_from_config(cube_config, true);
 
     memory_free(cube_config.vertices, sizeof(Vertex3d) * cube_config.vertex_count, MEMORY_TAG_APP);

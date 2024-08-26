@@ -16,6 +16,8 @@ typedef struct TextureSystemState
 {
     TextureSystemConfig config;
     Texture default_texture;
+    Texture default_specular_texture;
+    Texture default_normal_texture;
 
     Texture* textures;
     HashTable texture_table;
@@ -36,8 +38,8 @@ void create_texture(Texture* t)
     t->generation = INVALID_ID;
 }
 
-bool create_default_texture(TextureSystemState* state);
-void destroy_default_texture(TextureSystemState* state);
+bool create_default_textures(TextureSystemState* state);
+void destroy_default_textures(TextureSystemState* state);
 bool load_texture(const char* texture_name, Texture* out_texture);
 void destroy_texture(Texture* texture);
 
@@ -68,7 +70,7 @@ bool texture_system_init(void* state, TextureSystemConfig config)
         texture_system_state->textures[i].generation = INVALID_ID;
     }
 
-    create_default_texture(texture_system_state);
+    create_default_textures(texture_system_state);
     return true;
 }
 
@@ -85,7 +87,7 @@ void texture_system_shutdown(void)
         }
     }
 
-    destroy_default_texture(texture_system_state);
+    destroy_default_textures(texture_system_state);
 
     memory_zero(texture_system_state->textures, sizeof(Texture) * texture_system_state->config.max_textures);
 
@@ -99,6 +101,14 @@ Texture* texture_system_acquire(const char* name, bool auto_release)
     if (string_equals_nocase(name, DEFAULT_TEXTURE_NAME))
     {
         return &texture_system_state->default_texture;
+    }
+    if (string_equals_nocase(name, DEFAULT_SPECULAR_TEXTURE_NAME))
+    {
+        return &texture_system_state->default_specular_texture;
+    }
+    if (string_equals_nocase(name, DEFAULT_NORMAL_TEXTURE_NAME))
+    {
+        return &texture_system_state->default_normal_texture;
     }
 
     TextureReference ref;
@@ -150,6 +160,14 @@ void texture_system_release(const char* name)
     {
         return;
     }
+    if (string_equals_nocase(name, DEFAULT_SPECULAR_TEXTURE_NAME))
+    {
+        return;
+    }
+    if (string_equals_nocase(name, DEFAULT_NORMAL_TEXTURE_NAME))
+    {
+        return;
+    }
 
     TextureReference ref;
     hashtable_get(&texture_system_state->texture_table, name, &ref);
@@ -192,7 +210,29 @@ Texture* texture_system_get_default(void)
     return &texture_system_state->default_texture;
 }
 
-bool create_default_texture(TextureSystemState* state)
+Texture* texture_system_get_default_specular(void)
+{
+    if (texture_system_state == NULL)
+    {
+        log_error("Texture system is not initialized.");
+        return NULL;
+    }
+
+    return &texture_system_state->default_specular_texture;
+}
+
+Texture* texture_system_get_default_normal(void)
+{
+    if (texture_system_state == NULL)
+    {
+        log_error("Texture system is not initialized.");
+        return NULL;
+    }
+
+    return &texture_system_state->default_normal_texture;
+}
+
+bool create_default_textures(TextureSystemState* state)
 {
     // NOTE: Create default texture
     u8 pixels[DEFAULT_TEXTURE_PIXELS_COUNT];
@@ -222,15 +262,52 @@ bool create_default_texture(TextureSystemState* state)
     state->default_texture.has_transparency = false;
 
     renderer_create_texture(pixels, &state->default_texture);
-
     state->default_texture.generation = INVALID_ID;
+
+    u8 specular_pixels[16 * 16 * 4];
+    memory_zero(specular_pixels, sizeof(specular_pixels));
+    string_copy_n(state->default_specular_texture.name, DEFAULT_SPECULAR_TEXTURE_NAME, TEXTURE_NAME_MAX_LENGTH);
+    state->default_specular_texture.width = 16;
+    state->default_specular_texture.height = 16;
+    state->default_specular_texture.channel_count = 4;
+    state->default_specular_texture.generation = INVALID_ID;
+    state->default_specular_texture.has_transparency = false;
+    renderer_create_texture(specular_pixels, &state->default_specular_texture);
+    state->default_specular_texture.generation = INVALID_ID;
+
+    u8 normal_pixels[16 * 16 * 4];
+    memory_zero(normal_pixels, sizeof(normal_pixels));
+
+    for (u64 row = 0; row < 16; ++row)
+    {
+        for (u64 col = 0; col < 16; ++col)
+        {
+            u64 index = (row * 16 + col) * 4;
+            normal_pixels[index + 0] = 128;
+            normal_pixels[index + 1] = 128;
+            normal_pixels[index + 2] = 255;
+            normal_pixels[index + 3] = 255;
+        }
+    }
+
+    string_copy_n(state->default_normal_texture.name, DEFAULT_NORMAL_TEXTURE_NAME, TEXTURE_NAME_MAX_LENGTH);
+    state->default_normal_texture.width = 16;
+    state->default_normal_texture.height = 16;
+    state->default_normal_texture.channel_count = 4;
+    state->default_normal_texture.generation = INVALID_ID;
+    state->default_normal_texture.has_transparency = false;
+    renderer_create_texture(normal_pixels, &state->default_normal_texture);
+    state->default_normal_texture.generation = INVALID_ID;
+
     return true;
 }
 
-void destroy_default_texture(TextureSystemState* state)
+void destroy_default_textures(TextureSystemState* state)
 {
     if (state == NULL) return;
     destroy_texture(&state->default_texture);
+    destroy_texture(&state->default_specular_texture);
+    destroy_texture(&state->default_normal_texture);
 }
 
 bool load_texture(const char* texture_name, Texture* out_texture)

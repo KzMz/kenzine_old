@@ -67,6 +67,28 @@ bool material_loader_load(ResourceLoader* self, const char* name, Resource* out_
         string_copy_n(resource_data->diffuse_map_name, diffuse_map_node->string_, TEXTURE_NAME_MAX_LENGTH);
     }
 
+    JsonNode* specular_map_node = json_find_member(root, "specular_map_name");
+    if (specular_map_node != NULL && specular_map_node->tag == JSON_STRING)
+    {
+        string_copy_n(resource_data->specular_map_name, specular_map_node->string_, TEXTURE_NAME_MAX_LENGTH);
+    }
+
+    JsonNode* normal_map_node = json_find_member(root, "normal_map_name");
+    if (normal_map_node != NULL && normal_map_node->tag == JSON_STRING)
+    {
+        string_copy_n(resource_data->normal_map_name, normal_map_node->string_, TEXTURE_NAME_MAX_LENGTH);
+    }
+
+    JsonNode* brightness_node = json_find_member(root, "brightness");
+    if (brightness_node != NULL && brightness_node->tag == JSON_NUMBER)
+    {
+        resource_data->brightness = (f32) brightness_node->number_;
+    }
+    else 
+    {
+        resource_data->brightness = 32.0f;
+    }
+
     JsonNode* type_node = json_find_member(root, "shader");
     if (type_node == NULL)
     {

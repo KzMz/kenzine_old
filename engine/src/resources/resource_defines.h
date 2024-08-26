@@ -64,6 +64,8 @@ typedef enum TextureUsage
 {
     TEXTURE_USE_UNKNOWN = 0x00,
     TEXTURE_USE_DIFFUSE,
+    TEXTURE_USE_SPECULAR,
+    TEXTURE_USE_NORMAL
 } TextureUsage;
 
 typedef struct TextureMap
@@ -79,6 +81,9 @@ typedef struct MaterialResourceData
     bool auto_release;
     Vec4 diffuse_color;
     char diffuse_map_name[TEXTURE_NAME_MAX_LENGTH];
+    char specular_map_name[TEXTURE_NAME_MAX_LENGTH];
+    char normal_map_name[TEXTURE_NAME_MAX_LENGTH];
+    f32 brightness;
 } MaterialResourceData;
 
 typedef struct Material
@@ -89,6 +94,9 @@ typedef struct Material
     char name[MATERIAL_NAME_MAX_LENGTH];
     Vec4 diffuse_color;
     TextureMap diffuse_map;
+    TextureMap specular_map;
+    TextureMap normal_map;
+    f32 brightness;
     u64 shader_id;
 } Material;
 

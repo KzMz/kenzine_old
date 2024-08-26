@@ -33,6 +33,14 @@
         {
             "type": "vec2",
             "name": "in_texcoord"
+        },
+        {
+            "type": "vec4",
+            "name": "in_color"
+        },
+        {
+            "type": "vec4",
+            "name": "in_tangent"
         }
     ],
 
@@ -54,6 +62,11 @@
             "name": "ambient_color"
         },
         {
+            "type": "vec3",
+            "scope": "global",
+            "name": "view_position"
+        },
+        {
             "type": "vec4",
             "scope": "instance",
             "name": "diffuse_color"
@@ -62,6 +75,21 @@
             "type": "sampler",
             "scope": "instance",
             "name": "diffuse_texture"
+        },
+        {
+            "type": "sampler",
+            "scope": "instance",
+            "name": "specular_texture"
+        },
+        {
+            "type": "sampler",
+            "scope": "instance",
+            "name": "normal_texture"
+        },
+        {
+            "type": "f32",
+            "scope": "instance",
+            "name": "brightness"
         },
         {
             "type": "mat4",

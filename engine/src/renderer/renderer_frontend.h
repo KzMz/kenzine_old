@@ -16,7 +16,7 @@ bool renderer_draw_frame(RenderPacket* packet);
 u64 renderer_get_state_size(void);
 
 // TODO: remove it when not needed anymore
-KENZINE_API void renderer_set_view(Mat4 view);
+KENZINE_API void renderer_set_view(Mat4 view, Vec3 camera_position);
 
 void renderer_create_texture(const u8* pixels, Texture* texture);
 void renderer_destroy_texture(Texture* texture);

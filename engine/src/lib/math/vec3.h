@@ -124,12 +124,9 @@ KENZINE_INLINE f32 vec3_length(Vec3 v)
 KENZINE_INLINE Vec3 vec3_normalize(Vec3* v)
 {
     f32 length = vec3_length(*v);
-    kz_assert(length > 0.0f);
-
     v->x /= length;
     v->y /= length;
     v->z /= length;
-
     return *v;
 }
 

@@ -8,6 +8,8 @@ typedef struct TextureSystemConfig
 } TextureSystemConfig;
 
 #define DEFAULT_TEXTURE_NAME "default"
+#define DEFAULT_SPECULAR_TEXTURE_NAME "default_specular"
+#define DEFAULT_NORMAL_TEXTURE_NAME "default_normal"
 #define DEFAULT_TEXTURE_SIZE 256
 #define DEFAULT_TEXTURE_BPP 4
 #define DEFAULT_TEXTURE_PIXELS_COUNT (DEFAULT_TEXTURE_SIZE * DEFAULT_TEXTURE_SIZE * DEFAULT_TEXTURE_BPP)
@@ -20,3 +22,5 @@ Texture* texture_system_acquire(const char* name, bool auto_release);
 void texture_system_release(const char* name);
 
 Texture* texture_system_get_default(void);
+Texture* texture_system_get_default_specular(void);
+Texture* texture_system_get_default_normal(void);

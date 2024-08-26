@@ -44,6 +44,7 @@
         "loader_utils.h": "c",
         "iosfwd": "cpp",
         "xlocbuf": "cpp",
-        "vulkan_renderpass.h": "c"
+        "vulkan_renderpass.h": "c",
+        "material_system.h": "c"
     }
 }

@@ -83,4 +83,6 @@ typedef struct Vertex3d
     Vec3 position;
     Vec3 normal;
     Vec2 texcoord;
+    Vec4 color;
+    Vec4 tangent;
 } Vertex3d;
