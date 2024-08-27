@@ -10,6 +10,13 @@
 struct Shader;
 struct ShaderUniform;
 
+typedef enum RendererDebugViewMode
+{
+    RENDERER_VIEW_MODE_DEFAULT,
+    RENDERER_VIEW_MODE_LIGHTING,
+    RENDERER_VIEW_MODE_NORMALS,
+} RendererDebugViewMode;
+
 typedef enum RendererBackendType
 {
     RENDERER_BACKEND_TYPE_VULKAN = 0,

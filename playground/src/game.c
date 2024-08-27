@@ -135,6 +135,27 @@ bool game_update(Game* game, f64 delta_time)
 
     renderer_set_view(state->view, state->camera_position);
 
+    if (input_key_up(KEYBOARD_DEVICE_ID, KEY_1) && input_key_was_down(KEYBOARD_DEVICE_ID, KEY_1))
+    {
+        EventContext context = { 0 };
+        context.data.i32[0] = RENDERER_VIEW_MODE_LIGHTING;
+        event_trigger(EVENT_CODE_SET_RENDER_MODE, game, context);
+    }
+
+    if (input_key_up(KEYBOARD_DEVICE_ID, KEY_2) && input_key_was_down(KEYBOARD_DEVICE_ID, KEY_2))
+    {
+        EventContext context = { 0 };
+        context.data.i32[0] = RENDERER_VIEW_MODE_NORMALS;
+        event_trigger(EVENT_CODE_SET_RENDER_MODE, game, context);
+    }
+
+    if (input_key_up(KEYBOARD_DEVICE_ID, KEY_3) && input_key_was_down(KEYBOARD_DEVICE_ID, KEY_3))
+    {
+        EventContext context = { 0 };
+        context.data.i32[0] = RENDERER_VIEW_MODE_DEFAULT;
+        event_trigger(EVENT_CODE_SET_RENDER_MODE, game, context);
+    }
+
     return true;
 }
 

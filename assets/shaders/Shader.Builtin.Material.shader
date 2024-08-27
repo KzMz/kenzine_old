@@ -67,6 +67,11 @@
             "name": "view_position"
         },
         {
+            "type": "u32",
+            "scope": "global",
+            "name": "mode"
+        },
+        {
             "type": "vec4",
             "scope": "instance",
             "name": "diffuse_color"

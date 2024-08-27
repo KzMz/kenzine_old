@@ -24,6 +24,7 @@ typedef struct MaterialShaderUniformLocations
     u16 brightness;
     u16 normal_texture;
     u16 model;
+    u16 render_mode;
 } MaterialShaderUniformLocations;
 
 typedef struct UIShaderUniformLocations
@@ -86,6 +87,7 @@ bool material_system_init(void* state, MaterialSystemConfig config)
     material_system_state->material_locations.view = INVALID_ID_U16;
     material_system_state->material_locations.view_position = INVALID_ID_U16;
     material_system_state->material_locations.normal_texture = INVALID_ID_U16;
+    material_system_state->material_locations.render_mode = INVALID_ID_U16;
 
     material_system_state->ui_shader_id = INVALID_ID;
     material_system_state->ui_locations.diffuse_color = INVALID_ID_U16;
@@ -231,6 +233,7 @@ Material* material_system_acquire_from_config(MaterialResourceData config)
             material_system_state->material_locations.normal_texture = shader_system_uniform_index(shader, "normal_texture");
             material_system_state->material_locations.brightness = shader_system_uniform_index(shader, "brightness");
             material_system_state->material_locations.model = shader_system_uniform_index(shader, "model");
+            material_system_state->material_locations.render_mode = shader_system_uniform_index(shader, "mode");
         }
         else if (material_system_state->ui_shader_id == INVALID_ID && string_equals(config.shader_name, BUILTIN_SHADER_NAME_UI))
         {
@@ -432,7 +435,12 @@ bool create_default_material(MaterialSystemState* state)
 
 #define MATERIAL_APPLY_OR_FAIL(expr) if (!(expr)) { log_error("Failed to apply material: %s", expr); return false; }
 
-bool material_system_apply_global(u64 shader_id, const Mat4* projection, const Mat4* view, const Vec4* ambient_color, const Vec3* view_position)
+bool material_system_apply_global(
+    u64 shader_id, 
+    const Mat4* projection, const Mat4* view, 
+    const Vec4* ambient_color, 
+    const Vec3* view_position, 
+    u32 render_mode)
 {
     if (shader_id == material_system_state->material_shader_id)
     {
@@ -440,6 +448,7 @@ bool material_system_apply_global(u64 shader_id, const Mat4* projection, const M
         MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_id(material_system_state->material_locations.view, view));
         MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_id(material_system_state->material_locations.ambient_color, ambient_color));
         MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_id(material_system_state->material_locations.view_position, view_position));
+        MATERIAL_APPLY_OR_FAIL(shader_system_uniform_set_by_id(material_system_state->material_locations.render_mode, &render_mode));
     }
     else if (shader_id == material_system_state->ui_shader_id)
     {

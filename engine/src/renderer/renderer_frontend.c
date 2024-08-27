@@ -31,9 +31,39 @@ typedef struct RendererState
     f32 far_clip;
     u64 material_shader_id;
     u64 ui_shader_id;
+    u32 render_mode;
 } RendererState;
 
 static RendererState* renderer_state = 0;
+
+bool renderer_on_event(u16 code, void* sender, void* listener, EventContext context)
+{
+    switch (code)
+    {
+        case EVENT_CODE_SET_RENDER_MODE:
+            RendererState* state = (RendererState*) listener;
+            i32 mode = context.data.i32[0];
+            switch (mode)
+            {
+                default:
+                case RENDERER_VIEW_MODE_DEFAULT:
+                    log_debug("Setting render mode to default.");
+                    state->render_mode = RENDERER_VIEW_MODE_DEFAULT;
+                    break;
+                case RENDERER_VIEW_MODE_LIGHTING:
+                    log_debug("Setting render mode to lighting.");
+                    state->render_mode = RENDERER_VIEW_MODE_LIGHTING;
+                    break;
+                case RENDERER_VIEW_MODE_NORMALS:
+                    log_debug("Setting render mode to normals.");
+                    state->render_mode = RENDERER_VIEW_MODE_NORMALS;
+                    break;
+            }
+            return true;
+    }
+
+    return false;
+}
 
 #define CRITICAL(op, msg) if (!(op)) { log_error(msg); return false; }
 
@@ -43,6 +73,9 @@ bool renderer_init(void* state, const char* app_name)
 
     renderer_backend_create(RENDERER_BACKEND_TYPE_VULKAN, &renderer_state->backend);
     renderer_state->backend.frame_number = 0;
+    renderer_state->render_mode = RENDERER_VIEW_MODE_DEFAULT;
+
+    event_subscribe(EVENT_CODE_SET_RENDER_MODE, renderer_state, renderer_on_event);
 
     CRITICAL(renderer_state->backend.init(&renderer_state->backend, app_name), "Failed to initialize renderer backend. Shutting down.");
 
@@ -104,7 +137,13 @@ bool renderer_draw_frame(RenderPacket* packet)
             return false;
         }
 
-        if (!material_system_apply_global(renderer_state->material_shader_id, &renderer_state->projection, &renderer_state->view, &renderer_state->ambient_color, &renderer_state->view_position))
+        if (!material_system_apply_global(
+            renderer_state->material_shader_id, 
+            &renderer_state->projection, &renderer_state->view, 
+            &renderer_state->ambient_color, 
+            &renderer_state->view_position,
+            renderer_state->render_mode
+        ))
         {
             log_error("Failed to apply global material shader uniforms. Render frame failed.");
             return false;
@@ -152,7 +191,7 @@ bool renderer_draw_frame(RenderPacket* packet)
             return false;
         }
 
-        if (!material_system_apply_global(renderer_state->ui_shader_id, &renderer_state->ui_projection, &renderer_state->ui_view, NULL, NULL))
+        if (!material_system_apply_global(renderer_state->ui_shader_id, &renderer_state->ui_projection, &renderer_state->ui_view, NULL, NULL, 0))
         {
             log_error("Failed to apply global ui shader uniforms. Render frame failed.");
             return false;

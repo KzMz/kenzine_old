@@ -65,6 +65,10 @@ typedef enum SystemEventCode {
      */
     EVENT_CODE_MOUSE_WHEEL = 0x07,
 
+    EVENT_CODE_RESIZEd = 0x08,
+
+    EVENT_CODE_SET_RENDER_MODE = 0x09,
+
     // Debug event codes.
     EVENT_CODE_DEBUG0 = 0x10,
     EVENT_CODE_DEBUG1 = 0x11,
