@@ -45,6 +45,8 @@
         "iosfwd": "cpp",
         "xlocbuf": "cpp",
         "vulkan_renderpass.h": "c",
-        "material_system.h": "c"
+        "material_system.h": "c",
+        "input_devices.h": "c",
+        "hash_table.h": "c"
     }
 }

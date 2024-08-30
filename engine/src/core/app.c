@@ -104,10 +104,13 @@ KENZINE_API bool app_init(Game* game)
     log_init(logger_state);
 
     // Input subsystem
-    app_state->input_state_size = input_get_state_size();
+    InputSystemConfig input_config = {0};
+    input_config.max_devices = 4;
+    input_config.max_binded_actions = 32;
+    app_state->input_state_size = input_get_state_size(input_config);
     void* input_state = memory_alloc(app_state->input_state_size, MEMORY_TAG_APP);
     app_state->input_state = input_state;
-    input_init(input_state);
+    input_init(input_state, input_config);
 
     // Event subsystem
     app_state->event_state_size = event_system_get_state_size();

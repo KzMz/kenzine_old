@@ -1,4 +1,4 @@
-#include "input.h"
+#include "core/input/input.h"
 #include "input_keyboard.h"
 #include "core/event.h"
 #include "core/memory.h"
@@ -20,6 +20,8 @@ void keyboard_register(void)
     device.process_key = keyboard_process_key;
     device.get_current_state = keyboard_get_current_state;
     device.get_previous_state = keyboard_get_previous_state;
+    device.get_current_key_value = keyboard_key_current_value;
+    device.get_previous_key_value = keyboard_key_previous_value;
     device.state_size = sizeof(KeyboardState);
 
     input_register_device(device);
@@ -98,4 +100,16 @@ bool keyboard_key_was_up(u32 key)
 {
     KeyboardState* state = (KeyboardState*) input_get_previous_state(KEYBOARD_DEVICE_ID);
     return !state->keys[key];
+}
+
+f32 keyboard_key_current_value(u32 key)
+{
+    KeyboardState* state = (KeyboardState*) input_get_current_state(KEYBOARD_DEVICE_ID);
+    return state->keys[key] ? 1.0f : 0.0f;
+}
+
+f32 keyboard_key_previous_value(u32 key)
+{
+    KeyboardState* state = (KeyboardState*) input_get_previous_state(KEYBOARD_DEVICE_ID);
+    return state->keys[key] ? 1.0f : 0.0f;
 }

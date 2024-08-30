@@ -52,71 +52,81 @@ bool game_init(Game* game)
 
     update_view_matrix(game);
 
+    input_action_bind_button("memory", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_M });
+
+    input_action_bind_virtual_axis("move_forward", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_W }, (InputMapping) { KEYBOARD_DEVICE_ID, KEY_S });
+    input_action_bind_virtual_axis("move_right", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_E }, (InputMapping) { KEYBOARD_DEVICE_ID, KEY_Q });
+
+    input_action_bind_button("up", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_SPACE });
+
+    input_action_bind_button("yaw_left", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_LEFT });
+    input_action_bind_button("yaw_left", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_A });
+    input_action_bind_button("yaw_right", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_RIGHT });
+    input_action_bind_button("yaw_right", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_D });
+    input_action_bind_button("pitch_up", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_UP });
+    input_action_bind_button("pitch_down", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_DOWN });
+
+    input_action_bind_button("lighting_mode", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_1 });
+    input_action_bind_button("normals_mode", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_2 });
+    input_action_bind_button("default_mode", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_3 });
+
     return true;
 }
 
 bool game_update(Game* game, f64 delta_time)
 {
-    if (input_key_was_down(KEYBOARD_DEVICE_ID, KEY_M) && input_key_up(KEYBOARD_DEVICE_ID, KEY_M))
+    if (input_action_ended("memory"))
     {
         log_debug(get_memory_report());
     }
 
-    if (input_key_down(KEYBOARD_DEVICE_ID, KEY_A) || input_key_down(KEYBOARD_DEVICE_ID, KEY_LEFT))
+    if (input_action_down("yaw_left"))
     {
         camera_yaw(game, 1.0f * delta_time);
     }
 
-    if (input_key_down(KEYBOARD_DEVICE_ID, KEY_D) || input_key_down(KEYBOARD_DEVICE_ID, KEY_RIGHT))
+    if (input_action_down("yaw_right"))
     {
         camera_yaw(game, -1.0f * delta_time);
     }
 
-    if (input_key_down(KEYBOARD_DEVICE_ID, KEY_UP))
+    if (input_action_down("pitch_up"))
     {
         camera_pitch(game, 1.0f * delta_time);
     }
 
-    if (input_key_down(KEYBOARD_DEVICE_ID, KEY_DOWN))
+    if (input_action_down("pitch_down"))
     {
         camera_pitch(game, -1.0f * delta_time);
     }
 
-    if (input_key_up(KEYBOARD_DEVICE_ID, KEY_T) && input_key_was_down(KEYBOARD_DEVICE_ID, KEY_T))
+    /*if (input_key_up(KEYBOARD_DEVICE_ID, KEY_T) && input_key_was_down(KEYBOARD_DEVICE_ID, KEY_T))
     {
         EventContext context = { 0 };
         event_trigger(EVENT_CODE_DEBUG0, game, context);
-    }
+    }*/
 
     f32 temp_speed = 50.0f;
     Vec3 velocity = vec3_zero();
 
     GameState* state = (GameState*) game->state;
-    if (input_key_down(KEYBOARD_DEVICE_ID, KEY_W))
+    
+    f32 forward = 0.0f, right = 0.0f;
+    input_action_value("move_forward", &forward);
+    input_action_value("move_right", &right);
+    if (forward != 0.0f)
     {
-        Vec3 forward = mat4_forward(state->view);
-        velocity = vec3_add(velocity, forward);
+        Vec3 add = forward > 0.0f ? mat4_forward(state->view) : mat4_backward(state->view);
+        velocity = vec3_add(velocity, add);
     }
 
-    if (input_key_down(KEYBOARD_DEVICE_ID, KEY_S))
+    if (right != 0.0f)
     {
-        Vec3 backward = mat4_backward(state->view);
-        velocity = vec3_add(velocity, backward);
+        Vec3 add = right > 0.0f ? mat4_right(state->view) : mat4_left(state->view);
+        velocity = vec3_add(velocity, add);
     }
 
-    if (input_key_down(KEYBOARD_DEVICE_ID, KEY_Q))
-    {
-        Vec3 left = mat4_left(state->view);
-        velocity = vec3_add(velocity, left);
-    }
-
-    if (input_key_down(KEYBOARD_DEVICE_ID, KEY_E))
-    {
-        Vec3 right = mat4_right(state->view);
-        velocity = vec3_add(velocity, right);
-    }
-
-    if (input_key_down(KEYBOARD_DEVICE_ID, KEY_SPACE))
+    if (input_action_down("up"))
     {
         velocity.y += 1.0f;
     }
@@ -135,21 +145,21 @@ bool game_update(Game* game, f64 delta_time)
 
     renderer_set_view(state->view, state->camera_position);
 
-    if (input_key_up(KEYBOARD_DEVICE_ID, KEY_1) && input_key_was_down(KEYBOARD_DEVICE_ID, KEY_1))
+    if (input_action_ended("lighting_mode"))
     {
         EventContext context = { 0 };
         context.data.i32[0] = RENDERER_VIEW_MODE_LIGHTING;
         event_trigger(EVENT_CODE_SET_RENDER_MODE, game, context);
     }
 
-    if (input_key_up(KEYBOARD_DEVICE_ID, KEY_2) && input_key_was_down(KEYBOARD_DEVICE_ID, KEY_2))
+    if (input_action_ended("normals_mode"))
     {
         EventContext context = { 0 };
         context.data.i32[0] = RENDERER_VIEW_MODE_NORMALS;
         event_trigger(EVENT_CODE_SET_RENDER_MODE, game, context);
     }
 
-    if (input_key_up(KEYBOARD_DEVICE_ID, KEY_3) && input_key_was_down(KEYBOARD_DEVICE_ID, KEY_3))
+    if (input_action_ended("default_mode"))
     {
         EventContext context = { 0 };
         context.data.i32[0] = RENDERER_VIEW_MODE_DEFAULT;
@@ -172,5 +182,5 @@ void game_resize(Game* game, i32 width, i32 height)
 
 void game_shutdown(Game* game)
 {
-
+    input_action_unbind_all_actions();
 }

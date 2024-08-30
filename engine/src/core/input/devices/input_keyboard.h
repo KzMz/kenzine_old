@@ -155,6 +155,9 @@ bool keyboard_key_up(u32 key);
 bool keyboard_key_was_down(u32 key);
 bool keyboard_key_was_up(u32 key);
 
+f32 keyboard_key_current_value(u32 key);
+f32 keyboard_key_previous_value(u32 key);
+
 void keyboard_process_key(u32 key, bool is_down);
 
 void keyboard_register(void);

@@ -27,6 +27,9 @@ bool mouse_button_up(u32 button);
 bool mouse_button_was_down(u32 button);
 bool mouse_button_was_up(u32 button);
 
+f32 mouse_button_current_value(u32 button);
+f32 mouse_button_previous_value(u32 button);
+
 void mouse_process_button(u32 button, bool is_down);
 
 KENZINE_API void input_get_mouse_position(i32* x, i32* y);

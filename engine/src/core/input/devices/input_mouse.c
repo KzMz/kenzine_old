@@ -1,4 +1,4 @@
-#include "input.h"
+#include "core/input/input.h"
 #include "input_mouse.h"
 #include "core/event.h"
 #include "core/memory.h"
@@ -15,6 +15,8 @@ void mouse_register(void)
     device.process_key = mouse_process_button;
     device.get_current_state = mouse_get_current_state;
     device.get_previous_state = mouse_get_previous_state;
+    device.get_current_key_value = mouse_button_current_value;
+    device.get_previous_key_value = mouse_button_previous_value;
     device.state_size = sizeof(MouseState); 
 
     input_register_device(device);
@@ -74,6 +76,18 @@ void mouse_process_mouse_wheel(i8 z_delta)
     context.data.i8[0] = z_delta;
 
     event_trigger(EVENT_CODE_MOUSE_WHEEL, 0, context);
+}
+
+f32 mouse_button_current_value(u32 button)
+{
+    MouseState* state = (MouseState*) input_get_current_state(MOUSE_DEVICE_ID);
+    return state->buttons[button] ? 1.0f : 0.0f;
+}
+
+f32 mouse_button_previous_value(u32 button)
+{
+    MouseState* state = (MouseState*) input_get_current_state(MOUSE_DEVICE_ID);
+    return state->buttons[button] ? 1.0f : 0.0f;
 }
 
 bool mouse_button_down(u32 button)

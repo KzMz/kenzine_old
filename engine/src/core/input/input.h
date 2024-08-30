@@ -1,47 +1,46 @@
 #pragma once
 
 #include "defines.h"
-#include "input_mouse.h"
-#include "input_keyboard.h"
+#include "input_defines.h"
+#include "devices/input_devices.h"
 
-void input_init(void* state);
+typedef struct InputSystemConfig
+{
+    u8 max_devices;
+    u8 max_binded_actions;
+} InputSystemConfig;
+
+void input_init(void* state, InputSystemConfig config);
 void input_shutdown(void);
 void input_update(f64 delta_time);
 
-typedef bool (*InputKeyDown)(u32 key_code);
-typedef bool (*InputKeyUp)(u32 key_code);
-typedef bool (*InputKeyWasDown)(u32 key_code);
-typedef bool (*InputKeyWasUp)(u32 key_code);
-typedef void (*InputProcessKey)(u32 key_code, bool is_down);
-typedef void* (*InputGetCurrentState)(void);
-typedef void* (*InputGetPreviousState)(void);
+u64 input_get_state_size(InputSystemConfig config);
 
-typedef struct InputDevice {
-    u32 id;
-    
-    InputKeyDown key_down;
-    InputKeyUp key_up;
-    InputKeyWasDown key_was_down;
-    InputKeyWasUp key_was_up;
-    InputProcessKey process_key;
+void input_register_device(InputDevice device);
+void input_unregister_device(u32 device_id);
 
-    InputGetCurrentState get_current_state;
-    InputGetPreviousState get_previous_state;
-    
-    u64 state_size;
-} InputDevice;
+KENZINE_API bool input_action_bind_button(const char* action_name, InputMapping mapping);
 
-#define DEVICE_VALID(device) (device.id != 0 && device.key_down && device.key_up && device.key_was_down && device.key_was_up && device.process_key)
+KENZINE_API bool input_action_bind_native_axis(const char* action_name, InputMapping mapping);
+KENZINE_API bool input_action_bind_virtual_axis(const char* action_name, InputMapping positive_mapping, InputMapping negative_mapping);
 
-KENZINE_API bool input_key_down(u32 device_id, u32 key_code);
-KENZINE_API bool input_key_up(u32 device_id, u32 key_code);
-KENZINE_API bool input_key_was_down(u32 device_id, u32 key_code);
-KENZINE_API bool input_key_was_up(u32 device_id, u32 key_code);
+KENZINE_API bool input_action_unbind_all_mappings(const char* action_name);
+KENZINE_API void input_action_unbind_all_actions(void);
+KENZINE_API bool input_action_get(const char* action_name, InputAction* out_action);
+KENZINE_API bool input_action_get_bindings(const char* action_name, InputActionBinding** out_bindings, u32* out_count);
+
+KENZINE_API bool input_action_down(const char* action_name);
+KENZINE_API bool input_action_up(const char* action_name);
+KENZINE_API bool input_action_was_down(const char* action_name);
+KENZINE_API bool input_action_was_up(const char* action_name);
+
+KENZINE_API bool input_action_started(const char* action_name);
+KENZINE_API bool input_action_ended(const char* action_name);
+
+KENZINE_API bool input_action_value(const char* action_name, f32* out_value);
+KENZINE_API bool input_action_previous_value(const char* action_name, f32* out_value);
+KENZINE_API bool input_action_delta(const char* action_name, f32* out_delta);
+
+void* input_get_current_state(u32 device_id);
+void* input_get_previous_state(u32 device_id);
 void input_process_key(u32 device_id, u32 key_code, bool is_down);
-
-KENZINE_API void input_register_device(InputDevice device);
-KENZINE_API void input_unregister_device(u32 device_id);
-
-KENZINE_API void* input_get_current_state(u32 device_id);
-KENZINE_API void* input_get_previous_state(u32 device_id);
-KENZINE_API u64 input_get_state_size(void);
