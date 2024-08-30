@@ -21,6 +21,8 @@ const char* resource_type_to_string(ResourceType type)
             return "static_mesh";
         case RESOURCE_TYPE_SHADER:
             return "shader";
+        case RESOURCE_TYPE_DEVICE:
+            return "device";
         case RESOURCE_TYPE_CUSTOM:
             return "custom";
         default:

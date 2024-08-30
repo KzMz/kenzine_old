@@ -24,29 +24,107 @@
             "name": "up",
             "type": "button",
             "key": "space"
+        },
+        {
+            "name": "memory",
+            "type": "button",
+            "key": "m"
+        },
+        {
+            "name": "lighting_mode",
+            "type": "button",
+            "key": "1"
+        },
+        {
+            "name": "normals_mode",
+            "type": "button",
+            "key": "2"
+        },
+        {
+            "name": "default_mode",
+            "type": "button",
+            "key": "3"
+        },
+        {
+            "name": "yaw",
+            "type": "axis",
+            "positive": "d",
+            "negative": "a"
+        },
+        {
+            "name": "yaw",
+            "type": "axis",
+            "positive": "right",
+            "negative": "left"
+        },
+        {
+            "name": "pitch",
+            "type": "axis",
+            "positive": "up",
+            "negative": "down"
         }
     ],
     "keys": 
     [
         {
             "name": "space",
-            "code": 20
+            "code": 32
         },
         {
             "name": "w",
-            "code": 57
+            "code": 87
         },
         {
             "name": "s",
-            "code": 53
+            "code": 83
         },
         {
             "name": "q",
-            "code": 51
+            "code": 81
         },
         {
             "name": "e",
-            "code": 45
+            "code": 69
+        },
+        {
+            "name": "m",
+            "code": 77
+        },
+        {
+            "name": "left",
+            "code": 37
+        },
+        {
+            "name": "right",
+            "code": 39
+        },
+        {
+            "name": "up",
+            "code": 38
+        },
+        {
+            "name": "down",
+            "code": 40
+        },
+        {
+            "name": "a",
+            "code": 65
+        },
+        {
+            "name": "d",
+            "code": 68
+        },
+        {
+            "name": "1",
+            "code": 49
+        },
+        {
+            "name": "2",
+            "code": 50
+        },
+        {
+            "name": "3",
+            "code": 51
         }
     ]
 }

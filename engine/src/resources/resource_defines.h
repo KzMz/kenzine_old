@@ -1,6 +1,7 @@
 #pragma once
 #include "lib/math/math_defines.h"
 #include "core/input/input_defines.h"
+#include "lib/containers/hash_table.h"
 
 #define RESOURCE_VERSION_MAX_LENGTH 8
 #define RESOURCE_CUSTOM_TYPE_MAX_LENGTH 256
@@ -214,12 +215,6 @@ typedef enum DeviceGamepadType
     DEVICE_TYPE_GAMEPAD_GENERIC
 } DeviceGamepadType;
 
-typedef struct DeviceKeyConfig
-{
-    char name[DEVICE_KEY_NAME_MAX_LENGTH];
-    u32 key_code;
-} DeviceKeyConfig;
-
 typedef struct DeviceInputActionConfig
 {
     char action_name[MAX_INPUTACTION_NAME_LENGTH];
@@ -237,8 +232,7 @@ typedef struct DeviceConfig
     DeviceType type;
     DeviceGamepadType gamepad_type;
 
-    u8 keys_count;
-    DeviceKeyConfig* keys;
+    HashTable keys;
 
     u8 actions_count;
     DeviceInputActionConfig* actions;

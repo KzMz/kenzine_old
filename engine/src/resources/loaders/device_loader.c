@@ -37,8 +37,9 @@ bool device_loader_load(ResourceLoader* self, const char* name, Resource* out_re
     config->name = string_clone(name);
     config->actions_count = 0;
     config->actions = dynarray_create(DeviceInputActionConfig);
-    config->keys_count = 0;
-    config->keys = dynarray_create(DeviceKeyConfig);
+    
+    hashtable_create(u32, 128, false, &config->keys);
+
     config->type = DEVICE_TYPE_UNKNOWN;
     config->gamepad_type = DEVICE_TYPE_GAMEPAD_NONE;
 
@@ -142,8 +143,6 @@ bool device_loader_load(ResourceLoader* self, const char* name, Resource* out_re
             return false;
         }
 
-        DeviceKeyConfig key = {0};
-
         JsonNode* key_name_node = json_find_member(item, "name");
         if (key_name_node == NULL)
         {
@@ -155,8 +154,6 @@ bool device_loader_load(ResourceLoader* self, const char* name, Resource* out_re
             log_error("Device config key name field is not a string");
             return false;
         }
-
-        string_copy_n(key.name, key_name_node->string_, DEVICE_KEY_NAME_MAX_LENGTH);
 
         JsonNode* key_code_node = json_find_member(item, "code");
         if (key_code_node == NULL)
@@ -170,11 +167,9 @@ bool device_loader_load(ResourceLoader* self, const char* name, Resource* out_re
             return false;
         }
 
-        key.key_code = (u32) key_code_node->number_;
-
-        dynarray_push(config->keys, key);
+        u32 key_code = (u32) key_code_node->number_;
+        hashtable_set(&config->keys, key_name_node->string_, &key_code);
     }
-    config->keys_count = dynarray_length(config->keys);
 
     JsonNode* actions_node = json_find_member(root, "actions");
     if (actions_node == NULL)
@@ -252,6 +247,7 @@ bool device_loader_load(ResourceLoader* self, const char* name, Resource* out_re
                 string_copy_n(action.native_axis_key_name, action_native->string_, DEVICE_KEY_NAME_MAX_LENGTH);
                 action.negative_axis_key_name[0] = 0;
                 action.positive_axis_key_name[0] = 0;
+                action.axis_type = INPUT_ACTION_AXIS_TYPE_NATIVE;
             }
             else 
             {
@@ -281,6 +277,7 @@ bool device_loader_load(ResourceLoader* self, const char* name, Resource* out_re
                 }
                 string_copy_n(action.negative_axis_key_name, action_negative->string_, DEVICE_KEY_NAME_MAX_LENGTH);
                 action.native_axis_key_name[0] = 0;
+                action.axis_type = INPUT_ACTION_AXIS_TYPE_VIRTUAL;
             }
         }
         else if (action.action_type == INPUT_ACTION_TYPE_BUTTON)
@@ -302,7 +299,10 @@ bool device_loader_load(ResourceLoader* self, const char* name, Resource* out_re
             action.positive_axis_key_name[0] = 0;
             action.negative_axis_key_name[0] = 0;
         }
+
+        dynarray_push(config->actions, action);
     }
+    config->actions_count = dynarray_length(config->actions);
 
     json_delete(root);
 

@@ -6,6 +6,7 @@
 #include <renderer/renderer_frontend.h>
 #include <lib/math/mat4.h>
 #include <core/event.h>
+#include <systems/resource_system.h>
 
 void update_view_matrix(Game* game)
 {
@@ -52,23 +53,45 @@ bool game_init(Game* game)
 
     update_view_matrix(game);
 
-    input_action_bind_button("memory", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_M });
+    Resource keyboard_resource = { 0 };
+    resource_system_load("keyboard", RESOURCE_TYPE_DEVICE, &keyboard_resource);
 
-    input_action_bind_virtual_axis("move_forward", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_W }, (InputMapping) { KEYBOARD_DEVICE_ID, KEY_S });
-    input_action_bind_virtual_axis("move_right", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_E }, (InputMapping) { KEYBOARD_DEVICE_ID, KEY_Q });
+    DeviceConfig* keyboard_config = (DeviceConfig*) keyboard_resource.data;
+    if (keyboard_config == NULL)
+    {
+        log_error("Failed to load keyboard config");
+        return false;
+    }
 
-    input_action_bind_button("up", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_SPACE });
+    for (u32 i = 0; i < keyboard_config->actions_count; ++i)
+    {
+        DeviceInputActionConfig* action = &keyboard_config->actions[i];
+        if (action->action_type == INPUT_ACTION_TYPE_BUTTON)
+        {
+            u32 code;
+            hashtable_get(&keyboard_config->keys, action->key_name, &code);
+            input_action_bind_button(action->action_name, (InputMapping) { KEYBOARD_DEVICE_ID, code });
+        }
+        else if (action->action_type == INPUT_ACTION_TYPE_AXIS)
+        {
+            if (action->axis_type == INPUT_ACTION_AXIS_TYPE_NATIVE)
+            {
+                u32 code;
+                hashtable_get(&keyboard_config->keys, action->native_axis_key_name, &code);
+                input_action_bind_native_axis(action->action_name, (InputMapping) { KEYBOARD_DEVICE_ID, code });
+            } 
+            else if (action->axis_type == INPUT_ACTION_AXIS_TYPE_VIRTUAL)
+            {
+                u32 positive_code, negative_code;
+                hashtable_get(&keyboard_config->keys, action->positive_axis_key_name, &positive_code);
+                hashtable_get(&keyboard_config->keys, action->negative_axis_key_name, &negative_code);
 
-    input_action_bind_button("yaw_left", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_LEFT });
-    input_action_bind_button("yaw_left", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_A });
-    input_action_bind_button("yaw_right", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_RIGHT });
-    input_action_bind_button("yaw_right", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_D });
-    input_action_bind_button("pitch_up", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_UP });
-    input_action_bind_button("pitch_down", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_DOWN });
-
-    input_action_bind_button("lighting_mode", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_1 });
-    input_action_bind_button("normals_mode", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_2 });
-    input_action_bind_button("default_mode", (InputMapping) { KEYBOARD_DEVICE_ID, KEY_3 });
+                input_action_bind_virtual_axis(action->action_name, 
+                    (InputMapping) { KEYBOARD_DEVICE_ID, positive_code }, 
+                    (InputMapping) { KEYBOARD_DEVICE_ID, negative_code });
+            }
+        }
+    }
 
     return true;
 }
@@ -80,22 +103,24 @@ bool game_update(Game* game, f64 delta_time)
         log_debug(get_memory_report());
     }
 
-    if (input_action_down("yaw_left"))
+    f32 yaw_input = 0.0f, pitch_input = 0.0f;
+    input_action_value("yaw", &yaw_input);
+    input_action_value("pitch", &pitch_input);
+
+    if (yaw_input > 0)
     {
         camera_yaw(game, 1.0f * delta_time);
     }
-
-    if (input_action_down("yaw_right"))
+    else if (yaw_input < 0)
     {
         camera_yaw(game, -1.0f * delta_time);
     }
 
-    if (input_action_down("pitch_up"))
+    if (pitch_input > 0)
     {
         camera_pitch(game, 1.0f * delta_time);
     }
-
-    if (input_action_down("pitch_down"))
+    else if (pitch_input < 0)
     {
         camera_pitch(game, -1.0f * delta_time);
     }
