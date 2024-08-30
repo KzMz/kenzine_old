@@ -3,6 +3,7 @@
         "*.mat": "json",
         "*.glsl": "glsl",
         "*.shader": "json",
+        "*.device": "json",
         "atomic": "c",
         "charconv": "c",
         "cstring": "c",
@@ -47,6 +48,9 @@
         "vulkan_renderpass.h": "c",
         "material_system.h": "c",
         "input_devices.h": "c",
-        "hash_table.h": "c"
+        "hash_table.h": "c",
+        "resource_system.h": "c",
+        "vec4.h": "c",
+        "material_loader.h": "c"
     }
 }

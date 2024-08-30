@@ -38,6 +38,9 @@ bool material_loader_load(ResourceLoader* self, const char* name, Resource* out_
     resource_data->auto_release = true;
     resource_data->diffuse_color = vec4_one(); 
     resource_data->diffuse_map_name[0] = 0;
+    resource_data->specular_map_name[0] = 0;
+    resource_data->normal_map_name[0] = 0;
+    resource_data->brightness = 32.0f;
     string_copy_n(resource_data->name, name, MATERIAL_NAME_MAX_LENGTH);
 
     char buffer[4096 * 2] = {0};

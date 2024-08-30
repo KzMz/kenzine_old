@@ -1,0 +1,52 @@
+{
+    "resource": 
+    {
+        "type": "device",
+        "name": "keyboard",
+        "version": "0.1"
+    },
+    "type": "keyboard",
+    "actions": 
+    [
+        {
+            "name": "move_forward",
+            "type": "axis",
+            "positive": "w",
+            "negative": "s"
+        },
+        {
+            "name": "move_right",
+            "type": "axis",
+            "positive": "e",
+            "negative": "q"
+        },
+        {
+            "name": "up",
+            "type": "button",
+            "key": "space"
+        }
+    ],
+    "keys": 
+    [
+        {
+            "name": "space",
+            "code": 20
+        },
+        {
+            "name": "w",
+            "code": 57
+        },
+        {
+            "name": "s",
+            "code": 53
+        },
+        {
+            "name": "q",
+            "code": 51
+        },
+        {
+            "name": "e",
+            "code": 45
+        }
+    ]
+}

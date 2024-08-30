@@ -450,7 +450,6 @@ bool shader_loader_load(ResourceLoader* self, const char* name, Resource* out_re
     }
 
     json_delete(root);
-    file_close(&file_handle);
 
     out_resource->type = RESOURCE_TYPE_SHADER;
     out_resource->data = config;

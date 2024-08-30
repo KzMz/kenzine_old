@@ -1,5 +1,6 @@
 #pragma once
 #include "lib/math/math_defines.h"
+#include "core/input/input_defines.h"
 
 #define RESOURCE_VERSION_MAX_LENGTH 8
 #define RESOURCE_CUSTOM_TYPE_MAX_LENGTH 256
@@ -8,6 +9,8 @@
 #define MATERIAL_NAME_MAX_LENGTH 256
 #define GEOMETRY_NAME_MAX_LENGTH 256
 #define SHADER_NAME_MAX_LENGTH 512
+#define DEVICE_NAME_MAX_LENGTH 256
+#define DEVICE_KEY_NAME_MAX_LENGTH 50
 
 #define MAX_IMAGE_PATH_LENGTH 512
 
@@ -19,6 +22,7 @@ typedef enum ResourceType
     RESOURCE_TYPE_MATERIAL,
     RESOURCE_TYPE_STATIC_MESH,
     RESOURCE_TYPE_SHADER,
+    RESOURCE_TYPE_DEVICE,
     RESOURCE_TYPE_CUSTOM
 } ResourceType;
 
@@ -191,3 +195,51 @@ typedef struct ShaderConfig
     char** stage_names;
     const char** stage_files;
 } ShaderConfig;
+
+typedef enum DeviceType
+{
+    DEVICE_TYPE_UNKNOWN = 0,
+    DEVICE_TYPE_KEYBOARD,
+    DEVICE_TYPE_MOUSE,
+    DEVICE_TYPE_GAMEPAD,
+} DeviceType;
+
+typedef enum DeviceGamepadType
+{
+    DEVICE_TYPE_GAMEPAD_NONE,
+    DEVICE_TYPE_GAMEPAD_XBOX,
+    DEVICE_TYPE_GAMEPAD_DUALSHOCK4,
+    DEVICE_TYPE_GAMEPAD_SWITCH,
+    DEVICE_TYPE_GAMEPAD_STEAM,
+    DEVICE_TYPE_GAMEPAD_GENERIC
+} DeviceGamepadType;
+
+typedef struct DeviceKeyConfig
+{
+    char name[DEVICE_KEY_NAME_MAX_LENGTH];
+    u32 key_code;
+} DeviceKeyConfig;
+
+typedef struct DeviceInputActionConfig
+{
+    char action_name[MAX_INPUTACTION_NAME_LENGTH];
+    InputActionType action_type;
+    InputActionAxisType axis_type;
+    char key_name[DEVICE_KEY_NAME_MAX_LENGTH];
+    char positive_axis_key_name[DEVICE_KEY_NAME_MAX_LENGTH];
+    char negative_axis_key_name[DEVICE_KEY_NAME_MAX_LENGTH];
+    char native_axis_key_name[DEVICE_KEY_NAME_MAX_LENGTH];
+} DeviceInputActionConfig;
+
+typedef struct DeviceConfig
+{
+    char* name;
+    DeviceType type;
+    DeviceGamepadType gamepad_type;
+
+    u8 keys_count;
+    DeviceKeyConfig* keys;
+
+    u8 actions_count;
+    DeviceInputActionConfig* actions;
+} DeviceConfig;
