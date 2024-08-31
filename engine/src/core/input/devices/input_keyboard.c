@@ -5,14 +5,20 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef struct KeyboardState 
+{
+    bool keys[256];
+} KeyboardState;
+
 static KeyboardState current_keyboard_state;
 static KeyboardState previous_keyboard_state;
 
-void keyboard_register(void)
+void keyboard_register(u32 sub_id)
 {
     InputDevice device = {0};
     device.id = KEYBOARD_DEVICE_ID;
-    
+    device.sub_id = sub_id;
+
     device.key_down = keyboard_key_down;
     device.key_up = keyboard_key_up;
     device.key_was_down = keyboard_key_was_down;
@@ -27,17 +33,19 @@ void keyboard_register(void)
     input_register_device(device);
 }
 
-void* keyboard_get_current_state(void)
+void* keyboard_get_current_state(u32 sub_id)
 {
+    (void) sub_id; // NOTE: maybe we should handle multiple keyboards?
     return (void*) &current_keyboard_state;
 }
 
-void* keyboard_get_previous_state(void)
+void* keyboard_get_previous_state(u32 sub_id)
 {
+    (void) sub_id;
     return (void*) &previous_keyboard_state;
 }
 
-void keyboard_process_key(u32 key, bool is_down)
+void keyboard_process_key(u32 sub_id, u32 key, bool is_down)
 {
     if (key == KEY_LALT)
     {
@@ -64,7 +72,7 @@ void keyboard_process_key(u32 key, bool is_down)
         
     }
 
-    KeyboardState* state = (KeyboardState*) input_get_current_state(KEYBOARD_DEVICE_ID);
+    KeyboardState* state = (KeyboardState*) input_get_current_state(KEYBOARD_DEVICE_ID, sub_id);
     if (state->keys[key] == is_down) 
     {
         return;
@@ -78,38 +86,38 @@ void keyboard_process_key(u32 key, bool is_down)
     event_trigger(is_down ? EVENT_CODE_KEY_PRESSED : EVENT_CODE_KEY_RELEASED, 0, context);
 }
 
-bool keyboard_key_down(u32 key)
+bool keyboard_key_down(u32 sub_id, u32 key)
 {
-    KeyboardState* state = (KeyboardState*) input_get_current_state(KEYBOARD_DEVICE_ID);
+    KeyboardState* state = (KeyboardState*) input_get_current_state(KEYBOARD_DEVICE_ID, sub_id);
     return state->keys[key];
 }
 
-bool keyboard_key_up(u32 key)
+bool keyboard_key_up(u32 sub_id, u32 key)
 {
-    KeyboardState* state = (KeyboardState*) input_get_current_state(KEYBOARD_DEVICE_ID);
+    KeyboardState* state = (KeyboardState*) input_get_current_state(KEYBOARD_DEVICE_ID, sub_id);
     return !state->keys[key];
 }
 
-bool keyboard_key_was_down(u32 key)
+bool keyboard_key_was_down(u32 sub_id, u32 key)
 {
-    KeyboardState* state = (KeyboardState*) input_get_previous_state(KEYBOARD_DEVICE_ID);
+    KeyboardState* state = (KeyboardState*) input_get_previous_state(KEYBOARD_DEVICE_ID, sub_id);
     return state->keys[key];
 }
 
-bool keyboard_key_was_up(u32 key)
+bool keyboard_key_was_up(u32 sub_id, u32 key)
 {
-    KeyboardState* state = (KeyboardState*) input_get_previous_state(KEYBOARD_DEVICE_ID);
+    KeyboardState* state = (KeyboardState*) input_get_previous_state(KEYBOARD_DEVICE_ID, sub_id);
     return !state->keys[key];
 }
 
-f32 keyboard_key_current_value(u32 key)
+f32 keyboard_key_current_value(u32 sub_id, u32 key)
 {
-    KeyboardState* state = (KeyboardState*) input_get_current_state(KEYBOARD_DEVICE_ID);
+    KeyboardState* state = (KeyboardState*) input_get_current_state(KEYBOARD_DEVICE_ID, sub_id);
     return state->keys[key] ? 1.0f : 0.0f;
 }
 
-f32 keyboard_key_previous_value(u32 key)
+f32 keyboard_key_previous_value(u32 sub_id, u32 key)
 {
-    KeyboardState* state = (KeyboardState*) input_get_previous_state(KEYBOARD_DEVICE_ID);
+    KeyboardState* state = (KeyboardState*) input_get_previous_state(KEYBOARD_DEVICE_ID, sub_id);
     return state->keys[key] ? 1.0f : 0.0f;
 }

@@ -5,19 +5,20 @@
 #define MAX_INPUTACTION_NAME_LENGTH 64
 #define MAX_INPUTACTION_BINDINGS 8
 
-typedef bool (*InputKeyDown)(u32 key_code);
-typedef bool (*InputKeyUp)(u32 key_code);
-typedef bool (*InputKeyWasDown)(u32 key_code);
-typedef bool (*InputKeyWasUp)(u32 key_code);
-typedef f32 (*InputKeyGetCurrentValue)(u32 key_code);
-typedef f32 (*InputKeyGetPreviousValue)(u32 key_code);
-typedef void (*InputProcessKey)(u32 key_code, bool is_down);
-typedef void* (*InputGetCurrentState)(void);
-typedef void* (*InputGetPreviousState)(void);
+typedef bool (*InputKeyDown)(u32 sub_id, u32 key_code);
+typedef bool (*InputKeyUp)(u32 sub_id, u32 key_code);
+typedef bool (*InputKeyWasDown)(u32 sub_id, u32 key_code);
+typedef bool (*InputKeyWasUp)(u32 sub_id, u32 key_code);
+typedef f32 (*InputKeyGetCurrentValue)(u32 sub_id, u32 key_code);
+typedef f32 (*InputKeyGetPreviousValue)(u32 sub_id, u32 key_code);
+typedef void (*InputProcessKey)(u32 sub_id, u32 key_code, bool is_down);
+typedef void* (*InputGetCurrentState)(u32 sub_id);
+typedef void* (*InputGetPreviousState)(u32 sub_id);
 
 typedef struct InputDevice 
 {
     u32 id;
+    u32 sub_id;
     
     InputKeyDown key_down;
     InputKeyUp key_up;
@@ -36,10 +37,13 @@ typedef struct InputDevice
 } InputDevice;
 
 #define DEVICE_VALID(device) (device.id != 0 && device.key_down && device.key_up && device.key_was_down && device.key_was_up && device.process_key)
+#define IS_SAME_DEVICE(device, dev_id, sub_id) (device.id == (dev_id) && device.sub_id == (sub_id))
+#define DEVICE_SUB_ID_ANY -1
 
 typedef struct InputMapping 
 {
     u32 device_id;
+    i32 sub_id;
     u32 key_code;
 } InputMapping;
 

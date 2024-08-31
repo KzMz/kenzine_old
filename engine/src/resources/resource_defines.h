@@ -229,6 +229,7 @@ typedef struct DeviceInputActionConfig
 typedef struct DeviceConfig
 {
     char* name;
+    i32 sub_id;
     DeviceType type;
     DeviceGamepadType gamepad_type;
 

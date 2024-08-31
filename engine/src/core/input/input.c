@@ -16,13 +16,13 @@ typedef struct InputState
 
 static InputState* input_state = 0;
 
-bool input_key_down(u32 device_id, u32 key_code);
-bool input_key_up(u32 device_id, u32 key_code);
-bool input_key_was_down(u32 device_id, u32 key_code);
-bool input_key_was_up(u32 device_id, u32 key_code);
+bool input_key_down(u32 device_id, u32 sub_id, u32 key_code);
+bool input_key_up(u32 device_id, u32 sub_id, u32 key_code);
+bool input_key_was_down(u32 device_id, u32 sub_id, u32 key_code);
+bool input_key_was_up(u32 device_id, u32 sub_id, u32 key_code);
 
-f32 input_key_value(u32 device_id, u32 key_code);
-f32 input_key_previous_value(u32 device_id, u32 key_code);
+f32 input_key_value(u32 device_id, u32 sub_id, u32 key_code);
+f32 input_key_previous_value(u32 device_id, u32 sub_id, u32 key_code);
 
 bool input_action_bind_button(const char* action_name, InputMapping mapping)
 {
@@ -167,7 +167,7 @@ bool input_action_get_bindings(const char* action_name, InputActionBinding** out
     return true;
 }
 
-bool input_action_value(const char* action_name, f32* out_value)
+bool input_action_value(const char* action_name, u32 sub_id, f32* out_value)
 {
     if (!out_value)
     {
@@ -191,9 +191,16 @@ bool input_action_value(const char* action_name, f32* out_value)
         u8 count = 0;
         for (u32 i = 0; i < action.bindings_count; ++i)
         {
-            if (action.bindings[i].axis_type == INPUT_ACTION_AXIS_TYPE_NATIVE)
+            InputActionBinding* binding = &action.bindings[i];
+            if (binding->mapping0.sub_id != DEVICE_SUB_ID_ANY && 
+                binding->mapping0.sub_id != sub_id)
             {
-                f32 tmp = input_key_previous_value(action.bindings[i].mapping0.device_id, action.bindings[i].mapping0.key_code);
+                continue;
+            }
+
+            if (binding->axis_type == INPUT_ACTION_AXIS_TYPE_NATIVE)
+            {
+                f32 tmp = input_key_previous_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code);
                 if (tmp != 0.0f)
                 {
                     value += tmp;
@@ -202,8 +209,8 @@ bool input_action_value(const char* action_name, f32* out_value)
             }
             else 
             {
-                f32 positive = input_key_previous_value(action.bindings[i].mapping0.device_id, action.bindings[i].mapping0.key_code);
-                f32 negative = input_key_previous_value(action.bindings[i].mapping1.device_id, action.bindings[i].mapping1.key_code);
+                f32 positive = input_key_previous_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code);
+                f32 negative = input_key_previous_value(binding->mapping1.device_id, sub_id, binding->mapping1.key_code);
                 value += positive - negative;
                 count++;
             }
@@ -215,7 +222,14 @@ bool input_action_value(const char* action_name, f32* out_value)
     {
         for (u32 i = 0; i < action.bindings_count; ++i)
         {
-            if (input_key_down(action.bindings[i].mapping0.device_id, action.bindings[i].mapping0.key_code))
+            InputActionBinding* binding = &action.bindings[i];
+            if (binding->mapping0.sub_id != DEVICE_SUB_ID_ANY && 
+                binding->mapping0.sub_id != sub_id)
+            {
+                continue;
+            }
+
+            if (input_key_down(action.bindings[i].mapping0.device_id, sub_id, action.bindings[i].mapping0.key_code))
             {
                 *out_value = 1.0f;
                 return true;
@@ -226,7 +240,7 @@ bool input_action_value(const char* action_name, f32* out_value)
     return false;
 }
 
-bool input_action_previous_value(const char* action_name, f32* out_value)
+bool input_action_previous_value(const char* action_name, u32 sub_id, f32* out_value)
 {
     if (!out_value)
     {
@@ -250,9 +264,16 @@ bool input_action_previous_value(const char* action_name, f32* out_value)
         u8 count = 0;
         for (u32 i = 0; i < action.bindings_count; ++i)
         {
-            if (action.bindings[i].axis_type == INPUT_ACTION_AXIS_TYPE_NATIVE)
+            InputActionBinding* binding = &action.bindings[i];
+            if (binding->mapping0.sub_id != DEVICE_SUB_ID_ANY && 
+                binding->mapping0.sub_id != sub_id)
             {
-                f32 tmp = input_key_previous_value(action.bindings[i].mapping0.device_id, action.bindings[i].mapping0.key_code);
+                continue;
+            }
+
+            if (binding->axis_type == INPUT_ACTION_AXIS_TYPE_NATIVE)
+            {
+                f32 tmp = input_key_previous_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code);
                 if (tmp != 0.0f)
                 {
                     value += tmp;
@@ -261,8 +282,8 @@ bool input_action_previous_value(const char* action_name, f32* out_value)
             }
             else 
             {
-                f32 positive = input_key_previous_value(action.bindings[i].mapping0.device_id, action.bindings[i].mapping0.key_code);
-                f32 negative = input_key_previous_value(action.bindings[i].mapping1.device_id, action.bindings[i].mapping1.key_code);
+                f32 positive = input_key_previous_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code);
+                f32 negative = input_key_previous_value(binding->mapping1.device_id, sub_id, binding->mapping1.key_code);
                 value += positive - negative;
                 count++;
             }
@@ -274,7 +295,14 @@ bool input_action_previous_value(const char* action_name, f32* out_value)
     {
         for (u32 i = 0; i < action.bindings_count; ++i)
         {
-            if (input_key_was_down(action.bindings[i].mapping0.device_id, action.bindings[i].mapping0.key_code))
+            InputActionBinding* binding = &action.bindings[i];
+            if (binding->mapping0.sub_id != DEVICE_SUB_ID_ANY && 
+                binding->mapping0.sub_id != sub_id)
+            {
+                continue;
+            }
+
+            if (input_key_was_down(binding->mapping0.device_id, sub_id, binding->mapping0.key_code))
             {
                 *out_value = 1.0f;
                 return true;
@@ -285,7 +313,7 @@ bool input_action_previous_value(const char* action_name, f32* out_value)
     return false;
 }
 
-bool input_action_delta(const char* action_name, f32* out_delta)
+bool input_action_delta(const char* action_name, u32 sub_id, f32* out_delta)
 {
     if (!out_delta)
     {
@@ -304,14 +332,14 @@ bool input_action_delta(const char* action_name, f32* out_delta)
     }
 
     f32 prev = 0.0f, current = 0.0f;
-    input_action_value(action_name, &current);
-    input_action_previous_value(action_name, &prev);
+    input_action_value(action_name, sub_id, &current);
+    input_action_previous_value(action_name, sub_id, &prev);
 
     *out_delta = current - prev;
     return true;
 }
 
-bool input_action_down(const char* action_name)
+bool input_action_down(const char* action_name, u32 sub_id)
 {
     InputAction action = {0};
     hashtable_get(&input_state->input_actions, action_name, &action);
@@ -325,7 +353,14 @@ bool input_action_down(const char* action_name)
     {
         for (u32 i = 0; i < action.bindings_count; ++i)
         {
-            if (input_key_down(action.bindings[i].mapping0.device_id, action.bindings[i].mapping0.key_code))
+            InputActionBinding* binding = &action.bindings[i];
+            if (binding->mapping0.sub_id != DEVICE_SUB_ID_ANY && 
+                binding->mapping0.sub_id != sub_id)
+            {
+                continue;
+            }
+
+            if (input_key_down(binding->mapping0.device_id, sub_id, binding->mapping0.key_code))
             {
                 return true;
             }
@@ -335,7 +370,7 @@ bool input_action_down(const char* action_name)
     return false;
 }
 
-bool input_action_up(const char* action_name)
+bool input_action_up(const char* action_name, u32 sub_id)
 {
     InputAction action = {0};
     hashtable_get(&input_state->input_actions, action_name, &action);
@@ -349,7 +384,14 @@ bool input_action_up(const char* action_name)
     {
         for (u32 i = 0; i < action.bindings_count; ++i)
         {
-            if (input_key_up(action.bindings[i].mapping0.device_id, action.bindings[i].mapping0.key_code))
+            InputActionBinding* binding = &action.bindings[i];
+            if (binding->mapping0.sub_id != DEVICE_SUB_ID_ANY && 
+                binding->mapping0.sub_id != sub_id)
+            {
+                continue;
+            }
+
+            if (input_key_up(binding->mapping0.device_id, sub_id, binding->mapping0.key_code))
             {
                 return true;
             }
@@ -359,7 +401,7 @@ bool input_action_up(const char* action_name)
     return false;
 }
 
-bool input_action_was_down(const char* action_name)
+bool input_action_was_down(const char* action_name, u32 sub_id)
 {
     InputAction action = {0};
     hashtable_get(&input_state->input_actions, action_name, &action);
@@ -373,7 +415,14 @@ bool input_action_was_down(const char* action_name)
     {
         for (u32 i = 0; i < action.bindings_count; ++i)
         {
-            if (input_key_was_down(action.bindings[i].mapping0.device_id, action.bindings[i].mapping0.key_code))
+            InputActionBinding* binding = &action.bindings[i];
+            if (binding->mapping0.sub_id != DEVICE_SUB_ID_ANY && 
+                binding->mapping0.sub_id != sub_id)
+            {
+                continue;
+            }
+
+            if (input_key_was_down(binding->mapping0.device_id, sub_id, binding->mapping0.key_code))
             {
                 return true;
             }
@@ -383,7 +432,7 @@ bool input_action_was_down(const char* action_name)
     return false;
 }
 
-bool input_action_was_up(const char* action_name)
+bool input_action_was_up(const char* action_name, u32 sub_id)
 {
     InputAction action = {0};
     hashtable_get(&input_state->input_actions, action_name, &action);
@@ -397,7 +446,14 @@ bool input_action_was_up(const char* action_name)
     {
         for (u32 i = 0; i < action.bindings_count; ++i)
         {
-            if (input_key_was_up(action.bindings[i].mapping0.device_id, action.bindings[i].mapping0.key_code))
+            InputActionBinding* binding = &action.bindings[i];
+            if (binding->mapping0.sub_id != DEVICE_SUB_ID_ANY && 
+                binding->mapping0.sub_id != sub_id)
+            {
+                continue;
+            }
+
+            if (input_key_was_up(binding->mapping0.device_id, sub_id, binding->mapping0.key_code))
             {
                 return true;
             }
@@ -412,14 +468,14 @@ void input_action_unbind_all_actions(void)
     hashtable_destroy(&input_state->input_actions);
 }
 
-bool input_action_started(const char* action_name)
+bool input_action_started(const char* action_name, u32 sub_id)
 {
-    return input_action_down(action_name) && input_action_was_up(action_name);
+    return input_action_down(action_name, sub_id) && input_action_was_up(action_name, sub_id);
 }
 
-bool input_action_ended(const char* action_name)
+bool input_action_ended(const char* action_name, u32 sub_id)
 {
-    return input_action_up(action_name) && input_action_was_down(action_name);
+    return input_action_up(action_name, sub_id) && input_action_was_down(action_name, sub_id);
 }
 
 void input_register_device(InputDevice device)
@@ -452,91 +508,91 @@ void input_unregister_device(u32 device_id)
     }
 }
 
-bool input_key_down(u32 device_id, u32 key_code)
+bool input_key_down(u32 device_id, u32 sub_id, u32 key_code)
 {
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
-        if (input_state->input_devices[i].id == device_id)
+        if (IS_SAME_DEVICE(input_state->input_devices[i], device_id, sub_id))
         {
-            return input_state->input_devices[i].key_down(key_code);
+            return input_state->input_devices[i].key_down(sub_id, key_code);
         }
     }
 
     return false;
 }
 
-bool input_key_up(u32 device_id, u32 key_code)
+bool input_key_up(u32 device_id, u32 sub_id, u32 key_code)
 {
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
-        if (input_state->input_devices[i].id == device_id)
+        if (IS_SAME_DEVICE(input_state->input_devices[i], device_id, sub_id))
         {
-            return input_state->input_devices[i].key_up(key_code);
+            return input_state->input_devices[i].key_up(sub_id, key_code);
         }
     }
 
     return false;
 }
 
-bool input_key_was_down(u32 device_id, u32 key_code)
+bool input_key_was_down(u32 device_id, u32 sub_id, u32 key_code)
 {
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
-        if (input_state->input_devices[i].id == device_id)
+        if (IS_SAME_DEVICE(input_state->input_devices[i], device_id, sub_id))
         {
-            return input_state->input_devices[i].key_was_down(key_code);
+            return input_state->input_devices[i].key_was_down(sub_id, key_code);
         }
     }
 
     return false;
 }
 
-bool input_key_was_up(u32 device_id, u32 key_code)
+bool input_key_was_up(u32 device_id, u32 sub_id, u32 key_code)
 {
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
-        if (input_state->input_devices[i].id == device_id)
+        if (IS_SAME_DEVICE(input_state->input_devices[i], device_id, sub_id))
         {
-            return input_state->input_devices[i].key_was_up(key_code);
+            return input_state->input_devices[i].key_was_up(sub_id, key_code);
         }
     }
 
     return false;
 }
 
-f32 input_key_value(u32 device_id, u32 key_code)
+f32 input_key_value(u32 device_id, u32 sub_id, u32 key_code)
 {
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
-        if (input_state->input_devices[i].id == device_id)
+        if (IS_SAME_DEVICE(input_state->input_devices[i], device_id, sub_id))
         {
-            return input_state->input_devices[i].get_current_key_value(key_code);
+            return input_state->input_devices[i].get_current_key_value(sub_id, key_code);
         }
     }
 
     return 0.0f;
 }
 
-f32 input_key_previous_value(u32 device_id, u32 key_code)
+f32 input_key_previous_value(u32 device_id, u32 sub_id, u32 key_code)
 {
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
-        if (input_state->input_devices[i].id == device_id)
+        if (IS_SAME_DEVICE(input_state->input_devices[i], device_id, sub_id))
         {
-            return input_state->input_devices[i].get_previous_key_value(key_code);
+            return input_state->input_devices[i].get_previous_key_value(sub_id, key_code);
         }
     }
 
     return 0.0f;
 }
 
-void input_process_key(u32 device_id, u32 key_code, bool is_down)
+void input_process_key(u32 device_id, u32 sub_id, u32 key_code, bool is_down)
 {
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
         if (input_state->input_devices[i].id == device_id)
         {
-            input_state->input_devices[i].process_key(key_code, is_down);
+            input_state->input_devices[i].process_key(sub_id, key_code, is_down);
             break;
         }
     }
@@ -554,8 +610,8 @@ void input_init(void* state, InputSystemConfig config)
     input_state->input_devices = (InputDevice*) (state + sizeof(InputState));
     memory_zero(input_state->input_devices, sizeof(InputDevice) * config.max_devices);
 
-    keyboard_register();
-    mouse_register();
+    keyboard_register(0);
+    mouse_register(0);
 }
 
 void input_shutdown(void)
@@ -588,8 +644,8 @@ void input_update(f64 delta_time)
     {
         if (input_state->input_devices[i].id != 0)
         {
-            void* current_state = input_state->input_devices[i].get_current_state();
-            void* previous_state = input_state->input_devices[i].get_previous_state();
+            void* current_state = input_state->input_devices[i].get_current_state(input_state->input_devices[i].sub_id);
+            void* previous_state = input_state->input_devices[i].get_previous_state(input_state->input_devices[i].sub_id);
             if (!current_state || !previous_state)
             {
                 continue;
@@ -600,7 +656,7 @@ void input_update(f64 delta_time)
     }
 }
 
-void* input_get_current_state(u32 device_id)
+void* input_get_current_state(u32 device_id, u32 sub_id)
 {
     if (!input_state)
     {
@@ -609,16 +665,16 @@ void* input_get_current_state(u32 device_id)
 
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
-        if (input_state->input_devices[i].id == device_id)
+        if (IS_SAME_DEVICE(input_state->input_devices[i], device_id, sub_id))
         {
-            return input_state->input_devices[i].get_current_state();
+            return input_state->input_devices[i].get_current_state(sub_id);
         }
     }
 
     return 0;
 }
 
-void* input_get_previous_state(u32 device_id)
+void* input_get_previous_state(u32 device_id, u32 sub_id)
 {
     if (!input_state)
     {
@@ -627,9 +683,9 @@ void* input_get_previous_state(u32 device_id)
 
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
-        if (input_state->input_devices[i].id == device_id)
+        if (IS_SAME_DEVICE(input_state->input_devices[i], device_id, sub_id))
         {
-            return input_state->input_devices[i].get_previous_state();
+            return input_state->input_devices[i].get_previous_state(sub_id);
         }
     }
 

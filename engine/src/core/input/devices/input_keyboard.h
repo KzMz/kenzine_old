@@ -145,21 +145,16 @@ typedef enum KeyboardKeys {
     KEYS_MAX_KEYS
 } KeyboardKeys;
 
-typedef struct KeyboardState 
-{
-    bool keys[256];
-} KeyboardState;
+bool keyboard_key_down(u32 sub_id, u32 key);
+bool keyboard_key_up(u32 sub_id, u32 key);
+bool keyboard_key_was_down(u32 sub_id, u32 key);
+bool keyboard_key_was_up(u32 sub_id, u32 key);
 
-bool keyboard_key_down(u32 key);
-bool keyboard_key_up(u32 key);
-bool keyboard_key_was_down(u32 key);
-bool keyboard_key_was_up(u32 key);
+f32 keyboard_key_current_value(u32 sub_id, u32 key);
+f32 keyboard_key_previous_value(u32 sub_id, u32 key);
 
-f32 keyboard_key_current_value(u32 key);
-f32 keyboard_key_previous_value(u32 key);
+void keyboard_process_key(u32 sub_id, u32 key, bool is_down);
 
-void keyboard_process_key(u32 key, bool is_down);
-
-void keyboard_register(void);
-void* keyboard_get_current_state(void);
-void* keyboard_get_previous_state(void);
+void keyboard_register(u32 sub_id);
+void* keyboard_get_current_state(u32 sub_id);
+void* keyboard_get_previous_state(u32 sub_id);

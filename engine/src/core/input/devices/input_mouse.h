@@ -12,31 +12,21 @@ typedef enum MouseButton
     MOUSE_BUTTON_COUNT
 } MouseButton;
 
-typedef struct MouseState
-{
-    i32 x;
-    i32 y;
-    bool buttons[MOUSE_BUTTON_COUNT];
-} MouseState;
+bool mouse_button_down(u32 sub_id, u32 button);
+bool mouse_button_up(u32 sub_id, u32 button);
+bool mouse_button_was_down(u32 sub_id, u32 button);
+bool mouse_button_was_up(u32 sub_id, u32 button);
 
-static MouseState current_mouse_state;
-static MouseState previous_mouse_state;
+f32 mouse_button_current_value(u32 sub_id, u32 button);
+f32 mouse_button_previous_value(u32 sub_id, u32 button);
 
-bool mouse_button_down(u32 button);
-bool mouse_button_up(u32 button);
-bool mouse_button_was_down(u32 button);
-bool mouse_button_was_up(u32 button);
+void mouse_process_button(u32 sub_id, u32 button, bool is_down);
 
-f32 mouse_button_current_value(u32 button);
-f32 mouse_button_previous_value(u32 button);
+KENZINE_API void input_get_mouse_position(u32 sub_id, i32* x, i32* y);
+KENZINE_API void input_get_previous_mouse_position(u32 sub_id, i32* x, i32* y);
+void mouse_process_mouse_move(u32 sub_id, i32 x, i32 y);
+void mouse_process_mouse_wheel(u32 sub_id, i8 z_delta);
 
-void mouse_process_button(u32 button, bool is_down);
-
-KENZINE_API void input_get_mouse_position(i32* x, i32* y);
-KENZINE_API void input_get_previous_mouse_position(i32* x, i32* y);
-void mouse_process_mouse_move(i32 x, i32 y);
-void mouse_process_mouse_wheel(i8 z_delta);
-
-void mouse_register(void);
-void* mouse_get_current_state(void);
-void* mouse_get_previous_state(void);
+void mouse_register(u32 sub_id);
+void* mouse_get_current_state(u32 sub_id);
+void* mouse_get_previous_state(u32 sub_id);

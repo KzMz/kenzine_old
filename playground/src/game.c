@@ -70,7 +70,7 @@ bool game_init(Game* game)
         {
             u32 code;
             hashtable_get(&keyboard_config->keys, action->key_name, &code);
-            input_action_bind_button(action->action_name, (InputMapping) { KEYBOARD_DEVICE_ID, code });
+            input_action_bind_button(action->action_name, (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, code });
         }
         else if (action->action_type == INPUT_ACTION_TYPE_AXIS)
         {
@@ -78,7 +78,7 @@ bool game_init(Game* game)
             {
                 u32 code;
                 hashtable_get(&keyboard_config->keys, action->native_axis_key_name, &code);
-                input_action_bind_native_axis(action->action_name, (InputMapping) { KEYBOARD_DEVICE_ID, code });
+                input_action_bind_native_axis(action->action_name, (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, code });
             } 
             else if (action->axis_type == INPUT_ACTION_AXIS_TYPE_VIRTUAL)
             {
@@ -87,8 +87,8 @@ bool game_init(Game* game)
                 hashtable_get(&keyboard_config->keys, action->negative_axis_key_name, &negative_code);
 
                 input_action_bind_virtual_axis(action->action_name, 
-                    (InputMapping) { KEYBOARD_DEVICE_ID, positive_code }, 
-                    (InputMapping) { KEYBOARD_DEVICE_ID, negative_code });
+                    (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, positive_code }, 
+                    (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, negative_code });
             }
         }
     }
@@ -98,14 +98,14 @@ bool game_init(Game* game)
 
 bool game_update(Game* game, f64 delta_time)
 {
-    if (input_action_ended("memory"))
+    if (input_action_ended("memory", 0))
     {
         log_debug(get_memory_report());
     }
 
     f32 yaw_input = 0.0f, pitch_input = 0.0f;
-    input_action_value("yaw", &yaw_input);
-    input_action_value("pitch", &pitch_input);
+    input_action_value("yaw", 0, &yaw_input);
+    input_action_value("pitch", 0, &pitch_input);
 
     if (yaw_input > 0)
     {
@@ -137,8 +137,8 @@ bool game_update(Game* game, f64 delta_time)
     GameState* state = (GameState*) game->state;
     
     f32 forward = 0.0f, right = 0.0f;
-    input_action_value("move_forward", &forward);
-    input_action_value("move_right", &right);
+    input_action_value("move_forward", 0, &forward);
+    input_action_value("move_right", 0, &right);
     if (forward != 0.0f)
     {
         Vec3 add = forward > 0.0f ? mat4_forward(state->view) : mat4_backward(state->view);
@@ -151,7 +151,7 @@ bool game_update(Game* game, f64 delta_time)
         velocity = vec3_add(velocity, add);
     }
 
-    if (input_action_down("up"))
+    if (input_action_down("up", 0))
     {
         velocity.y += 1.0f;
     }
@@ -170,21 +170,21 @@ bool game_update(Game* game, f64 delta_time)
 
     renderer_set_view(state->view, state->camera_position);
 
-    if (input_action_ended("lighting_mode"))
+    if (input_action_ended("lighting_mode", 0))
     {
         EventContext context = { 0 };
         context.data.i32[0] = RENDERER_VIEW_MODE_LIGHTING;
         event_trigger(EVENT_CODE_SET_RENDER_MODE, game, context);
     }
 
-    if (input_action_ended("normals_mode"))
+    if (input_action_ended("normals_mode", 0))
     {
         EventContext context = { 0 };
         context.data.i32[0] = RENDERER_VIEW_MODE_NORMALS;
         event_trigger(EVENT_CODE_SET_RENDER_MODE, game, context);
     }
 
-    if (input_action_ended("default_mode"))
+    if (input_action_ended("default_mode", 0))
     {
         EventContext context = { 0 };
         context.data.i32[0] = RENDERER_VIEW_MODE_DEFAULT;

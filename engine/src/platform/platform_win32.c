@@ -280,7 +280,7 @@ LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPA
                 key = extended ? KEY_RCONTROL : KEY_LCONTROL;
             } 
 
-            input_process_key(KEYBOARD_DEVICE_ID, key, pressed);
+            input_process_key(KEYBOARD_DEVICE_ID, 0, key, pressed);
             return 0;
         }
         case WM_MOUSEMOVE: 
@@ -288,7 +288,7 @@ LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPA
             i32 x = GET_X_LPARAM(l_param);
             i32 y = GET_Y_LPARAM(l_param);
 
-            mouse_process_mouse_move(x, y);
+            mouse_process_mouse_move(0, x, y);
         } break;
         case WM_MOUSEWHEEL: 
         {
@@ -297,7 +297,7 @@ LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPA
             {
                 // flatten input
                 delta = (delta > 0) ? 1 : -1;
-                mouse_process_mouse_wheel(delta);
+                mouse_process_mouse_wheel(0, delta);
             }
         } break;
         case WM_LBUTTONDOWN:
@@ -327,7 +327,7 @@ LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPA
 
             if (button != MOUSE_BUTTON_COUNT)
             {
-                input_process_key(MOUSE_DEVICE_ID, button, pressed);
+                input_process_key(MOUSE_DEVICE_ID, 0, button, pressed);
             }
         } break;
     }

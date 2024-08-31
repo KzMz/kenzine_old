@@ -64,6 +64,19 @@ bool device_loader_load(ResourceLoader* self, const char* name, Resource* out_re
 
     string_copy_n(config->name, metadata.name, DEVICE_NAME_MAX_LENGTH);
 
+    config->sub_id = DEVICE_SUB_ID_ANY;
+    JsonNode* sub_id_node = json_find_member(root, "sub_id");
+    if (sub_id_node != NULL)
+    {
+        if (sub_id_node->tag != JSON_NUMBER)
+        {
+            log_error("Device config sub_id field is not a number");
+            return false;
+        }
+
+        config->sub_id = (i32) sub_id_node->number_;
+    }
+
     JsonNode* type_node = json_find_member(root, "type");
     if (type_node == NULL)
     {
