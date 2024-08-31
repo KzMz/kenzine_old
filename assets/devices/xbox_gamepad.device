@@ -1,0 +1,55 @@
+{
+    "resource": 
+    {
+        "type": "device",
+        "name": "keyboard",
+        "version": "0.1"
+    },
+    "type": "gamepad",
+    "gamepad": "xbox",
+    "actions": 
+    [
+        {
+            "name": "move_forward",
+            "type": "axis",
+            "native": "left_stick_y"
+        },
+        {
+            "name": "move_right",
+            "type": "axis",
+            "native": "left_stick_x"
+        },
+        {
+            "name": "yaw",
+            "type": "axis",
+            "native": "right_stick_x",
+            "inverted": true,
+            "deadzone": 0.5
+        },
+        {
+            "name": "pitch",
+            "type": "axis",
+            "native": "right_stick_y",
+            "deadzone": 0.5
+        }
+    ],
+    "keys": 
+    [
+        {
+            "name": "left_stick_x",
+            "code": 0
+        },
+        {
+            "name": "left_stick_y",
+            "code": 1
+        },
+        {
+            "name": "right_stick_x",
+            "code": 2
+        },
+        {
+            "name": "right_stick_y",
+            "code": 3
+        }
+    ]
+}

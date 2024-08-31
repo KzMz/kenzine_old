@@ -7,10 +7,14 @@
 #include "lib/containers/dyn_array.h"
 #include "renderer/vulkan/vulkan_defines.h"
 #include "core/event.h"
+#include "core/memory.h"
 
 #include <windows.h>
 #include <windowsx.h>
 #include <vulkan/vulkan_win32.h>
+#include <hidsdi.h>
+#include <stdio.h>
+#include <Xinput.h>
 
 typedef struct PlatformState
 {
@@ -101,7 +105,10 @@ bool platform_init(void* state, const char* app_name, i32 width, i32 height, i32
     i32 show_command = should_activate ? SW_SHOW : SW_SHOWNOACTIVATE;
     ShowWindow(platform_state->h_window, show_command);
 
-    clock_setup();    
+    clock_setup();   
+
+    // TODO: for testing
+    platform_register_hid_device(); 
     return true;
 }
 
@@ -230,6 +237,135 @@ bool platform_create_vulkan_surface(VulkanContext* context)
     return true;
 }
 
+void platform_create_hid_device(void* handle, PlatformHIDDevice* out_device)
+{
+    if (handle == NULL || out_device == NULL)
+    {
+        return;
+    }
+
+    out_device->device_handle = handle;
+    HANDLE dhandle = (HANDLE) handle;
+
+    WCHAR device_name[1024] = {0};
+    u32 buffer_size = sizeof(device_name) / sizeof(*device_name);
+    GetRawInputDeviceInfoW(dhandle, RIDI_DEVICENAME, device_name, &buffer_size);
+    sprintf_s(out_device->name, sizeof(out_device->name), "%ws", device_name);
+
+    out_device->output_handle = CreateFileW(device_name, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+    HidD_GetProductString(out_device->output_handle, out_device->product, sizeof(out_device->product) / sizeof(out_device->product[0]));
+    HidD_GetManufacturerString(out_device->output_handle, out_device->manufacturer, sizeof(out_device->manufacturer) / sizeof(out_device->manufacturer[0]));
+    HidD_GetSerialNumberString(out_device->output_handle, out_device->serial_number, sizeof(out_device->serial_number) / sizeof(out_device->serial_number[0]));
+
+    RID_DEVICE_INFO device_info = {0};
+    u32 device_info_size = sizeof(device_info);
+    if (GetRawInputDeviceInfo(dhandle, RIDI_DEVICEINFO, &device_info, &device_info_size) > 0)
+    {
+        out_device->product_id = device_info.hid.dwProductId;
+        out_device->vendor_id = device_info.hid.dwVendorId;
+    }
+}
+
+bool platform_register_hid_device(void)
+{
+    if (platform_state == NULL)
+    {
+        return false;
+    }
+
+    RAWINPUTDEVICE device_list[2] = {0};
+    device_list[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    device_list[0].usUsage = HID_USAGE_GENERIC_GAMEPAD;
+    device_list[0].dwFlags = RIDEV_DEVNOTIFY | RIDEV_INPUTSINK;
+    device_list[0].hwndTarget = platform_state->h_window;
+
+    device_list[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    device_list[1].usUsage = HID_USAGE_GENERIC_JOYSTICK;
+    device_list[1].dwFlags = RIDEV_DEVNOTIFY | RIDEV_INPUTSINK;
+    device_list[1].hwndTarget = platform_state->h_window;
+    RegisterRawInputDevices(device_list, 2, sizeof(RAWINPUTDEVICE));
+    return true;
+}
+
+void platform_destroy_hid_device(PlatformHIDDevice* device)
+{
+    if (device == NULL)
+    {
+        return;
+    }
+
+    if (device->output_handle == INVALID_HANDLE_VALUE)
+    {
+        return;
+    }
+
+    CloseHandle(device->output_handle);
+    memory_zero(device, sizeof(PlatformHIDDevice));
+    device->output_handle = INVALID_HANDLE_VALUE;
+}
+
+// XBOX Gamepad
+#define XINPUT_MAX_TRIGGER 255
+#define XINPUT_MAX_THUMB 32767
+#define XINPUT_MAX_VIBRATION 65535
+
+bool platform_gamepad_xbox_set_vibration(u32 sub_id, GamepadVibration vibration)
+{
+    XINPUT_VIBRATION xinput_vibration = {0};
+    xinput_vibration.wLeftMotorSpeed = (u16) (vibration.left_motor * XINPUT_MAX_VIBRATION);
+    xinput_vibration.wRightMotorSpeed = (u16) (vibration.right_motor * XINPUT_MAX_VIBRATION);
+
+    DWORD result = XInputSetState(sub_id, &xinput_vibration);
+    if (result != ERROR_SUCCESS)
+    {
+        log_warning("Failed to set gamepad vibration. ID: %d Error code: %d", sub_id, result);
+        return false;
+    }
+
+    return true;
+}
+
+void* platform_gamepad_xbox_get_current_state(u32 sub_id)
+{
+    GamepadState* state = (GamepadState*) gamepad_get_current_state(sub_id);
+
+    XINPUT_STATE xinput_state = {0};
+    DWORD result = XInputGetState(sub_id, &xinput_state);
+    if (result == ERROR_SUCCESS)
+    {
+        state->connected = true;
+        
+        state->buttons[GAMEPAD_BUTTON_FACE_BOTTOM] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_A) != 0;
+        state->buttons[GAMEPAD_BUTTON_FACE_RIGHT] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_B) != 0;
+        state->buttons[GAMEPAD_BUTTON_FACE_LEFT] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_X) != 0;
+        state->buttons[GAMEPAD_BUTTON_FACE_TOP] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_Y) != 0;
+        state->buttons[GAMEPAD_BUTTON_SHOULDER_LEFT] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0;
+        state->buttons[GAMEPAD_BUTTON_SHOULDER_RIGHT] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0;
+        state->buttons[GAMEPAD_BUTTON_THUMB_LEFT] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0;
+        state->buttons[GAMEPAD_BUTTON_THUMB_RIGHT] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0;
+        state->buttons[GAMEPAD_BUTTON_DPAD_UP] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0;
+        state->buttons[GAMEPAD_BUTTON_DPAD_RIGHT] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0;
+        state->buttons[GAMEPAD_BUTTON_DPAD_DOWN] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0;
+        state->buttons[GAMEPAD_BUTTON_DPAD_LEFT] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0; 
+        state->buttons[GAMEPAD_BUTTON_START] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_START) != 0;
+        state->buttons[GAMEPAD_BUTTON_BACK] = (xinput_state.Gamepad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
+
+        state->axes[GAMEPAD_AXIS_LEFT_THUMB_X] = (f32) xinput_state.Gamepad.sThumbLX / XINPUT_MAX_THUMB;
+        state->axes[GAMEPAD_AXIS_LEFT_THUMB_Y] = (f32) xinput_state.Gamepad.sThumbLY / XINPUT_MAX_THUMB;
+        state->axes[GAMEPAD_AXIS_RIGHT_THUMB_X] = (f32) xinput_state.Gamepad.sThumbRX / XINPUT_MAX_THUMB;
+        state->axes[GAMEPAD_AXIS_RIGHT_THUMB_Y] = (f32) xinput_state.Gamepad.sThumbRY / XINPUT_MAX_THUMB;
+        state->axes[GAMEPAD_AXIS_TRIGGER_LEFT] = (f32) xinput_state.Gamepad.bLeftTrigger / XINPUT_MAX_TRIGGER;
+        state->axes[GAMEPAD_AXIS_TRIGGER_RIGHT] = (f32) xinput_state.Gamepad.bRightTrigger / XINPUT_MAX_TRIGGER;
+    }
+    else
+    {
+        state->connected = false;
+        log_warning("Failed to get gamepad state. ID: %d Error code: %d", sub_id, result);
+    }
+
+    return state;
+}
+
 LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPARAM l_param)
 {
     switch (msg)
@@ -328,6 +464,26 @@ LRESULT CALLBACK win32_process_message(HWND window, u32 msg, WPARAM w_param, LPA
             if (button != MOUSE_BUTTON_COUNT)
             {
                 input_process_key(MOUSE_DEVICE_ID, 0, button, pressed);
+            }
+        } break;
+        case WM_INPUT_DEVICE_CHANGE:
+        {
+            PlatformHIDDevice device = {0};
+            if (w_param == GIDC_ARRIVAL)
+            {
+                input_on_connected(GAMEPAD_DEVICE_ID, (void*) l_param);
+
+                EventContext event = {0};
+                event.data.u64[0] = l_param;
+                event_trigger(EVENT_CODE_HID_DEVICE_CONNECTED, 0, event);
+            }
+            else if (w_param == GIDC_REMOVAL)
+            {
+                input_on_disconnected((void*) l_param);
+
+                EventContext event = {0};
+                event.data.u64[0] = l_param;
+                event_trigger(EVENT_CODE_HID_DEVICE_DISCONNECTED, 0, event);
             }
         } break;
     }

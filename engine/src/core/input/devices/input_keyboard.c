@@ -28,6 +28,7 @@ void keyboard_register(u32 sub_id)
     device.get_previous_state = keyboard_get_previous_state;
     device.get_current_key_value = keyboard_key_current_value;
     device.get_previous_key_value = keyboard_key_previous_value;
+    device.is_connected = keyboard_is_connected;
     device.state_size = sizeof(KeyboardState);
 
     input_register_device(device);
@@ -120,4 +121,10 @@ f32 keyboard_key_previous_value(u32 sub_id, u32 key)
 {
     KeyboardState* state = (KeyboardState*) input_get_previous_state(KEYBOARD_DEVICE_ID, sub_id);
     return state->keys[key] ? 1.0f : 0.0f;
+}
+
+bool keyboard_is_connected(u32 sub_id)
+{
+    (void) sub_id;
+    return true;
 }

@@ -16,8 +16,8 @@ void input_update(f64 delta_time);
 
 u64 input_get_state_size(InputSystemConfig config);
 
-void input_register_device(InputDevice device);
-void input_unregister_device(u32 device_id);
+u32 input_register_device(InputDevice device);
+void input_unregister_device(u32 device_id, u32 sub_id);
 
 KENZINE_API bool input_action_bind_button(const char* action_name, InputMapping mapping);
 
@@ -44,3 +44,7 @@ KENZINE_API bool input_action_delta(const char* action_name, u32 sub_id, f32* ou
 void* input_get_current_state(u32 device_id, u32 sub_id);
 void* input_get_previous_state(u32 device_id, u32 sub_id);
 void input_process_key(u32 device_id, u32 sub_id, u32 key_code, bool is_down);
+
+bool input_is_connected(u32 device_id, u32 sub_id);
+bool input_on_connected(u32 device_id, void* handle);
+bool input_on_disconnected(void* handle);

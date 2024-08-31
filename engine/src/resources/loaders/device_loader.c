@@ -249,6 +249,30 @@ bool device_loader_load(ResourceLoader* self, const char* name, Resource* out_re
 
         if (action.action_type == INPUT_ACTION_TYPE_AXIS)
         {
+            action.inverted = false;
+            JsonNode* inverted_node = json_find_member(item, "inverted");
+            if (inverted_node != NULL)
+            {
+                if (inverted_node->tag != JSON_BOOL)
+                {
+                    log_error("Device config action inverted field is not a boolean");
+                    return false;
+                }
+                action.inverted = inverted_node->bool_;
+            }
+
+            action.deadzone = 0.0f;
+            JsonNode* deadzone_node = json_find_member(item, "deadzone");
+            if (deadzone_node != NULL)
+            {
+                if (deadzone_node->tag != JSON_NUMBER)
+                {
+                    log_error("Device config action deadzone field is not a number");
+                    return false;
+                }
+                action.deadzone = (f32) deadzone_node->number_;
+            }
+
             JsonNode* action_native = json_find_member(item, "native");
             if (action_native != NULL)
             {

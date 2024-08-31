@@ -28,6 +28,7 @@ void mouse_register(u32 sub_id)
     device.get_previous_state = mouse_get_previous_state;
     device.get_current_key_value = mouse_button_current_value;
     device.get_previous_key_value = mouse_button_previous_value;
+    device.is_connected = mouse_is_connected;
     device.state_size = sizeof(MouseState); 
 
     input_register_device(device);
@@ -137,4 +138,10 @@ void input_get_previous_mouse_position(u32 sub_id, i32* x, i32* y)
     MouseState* state = (MouseState*) input_get_previous_state(MOUSE_DEVICE_ID, sub_id);
     *x = state->x;
     *y = state->y;
+}
+
+bool mouse_is_connected(u32 sub_id)
+{
+    (void) sub_id;
+    return true;
 }

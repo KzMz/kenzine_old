@@ -30,3 +30,5 @@ void mouse_process_mouse_wheel(u32 sub_id, i8 z_delta);
 void mouse_register(u32 sub_id);
 void* mouse_get_current_state(u32 sub_id);
 void* mouse_get_previous_state(u32 sub_id);
+
+bool mouse_is_connected(u32 sub_id);

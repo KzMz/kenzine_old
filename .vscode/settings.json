@@ -51,6 +51,7 @@
         "hash_table.h": "c",
         "resource_system.h": "c",
         "vec4.h": "c",
-        "material_loader.h": "c"
+        "material_loader.h": "c",
+        "math_defines.h": "c"
     }
 }

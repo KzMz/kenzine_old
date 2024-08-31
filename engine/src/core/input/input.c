@@ -4,6 +4,7 @@
 #include "core/event.h"
 #include "lib/containers/hash_table.h"
 #include "lib/string.h"
+#include "lib/math/math.h"
 
 #include <stddef.h>
 
@@ -167,6 +168,18 @@ bool input_action_get_bindings(const char* action_name, InputActionBinding** out
     return true;
 }
 
+f32 input_apply_deadzone_f(f32 value, f32 deadzone)
+{
+    f32 abs_value = math_abs(value);
+    if (abs_value < deadzone)
+    {
+        return 0.0f;
+    }
+
+    f32 sign = value > 0.0f ? 1.0f : -1.0f;
+    return sign * (abs_value - deadzone) / (1.0f - deadzone);
+}
+
 bool input_action_value(const char* action_name, u32 sub_id, f32* out_value)
 {
     if (!out_value)
@@ -198,9 +211,11 @@ bool input_action_value(const char* action_name, u32 sub_id, f32* out_value)
                 continue;
             }
 
+            f32 multiplier = binding->mapping0.inverted ? -1.0f : 1.0f;
             if (binding->axis_type == INPUT_ACTION_AXIS_TYPE_NATIVE)
             {
-                f32 tmp = input_key_previous_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code);
+                f32 tmp = input_key_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code) * multiplier;
+                tmp = input_apply_deadzone_f(tmp, binding->mapping0.deadzone);
                 if (tmp != 0.0f)
                 {
                     value += tmp;
@@ -209,13 +224,15 @@ bool input_action_value(const char* action_name, u32 sub_id, f32* out_value)
             }
             else 
             {
-                f32 positive = input_key_previous_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code);
-                f32 negative = input_key_previous_value(binding->mapping1.device_id, sub_id, binding->mapping1.key_code);
+                f32 positive = input_key_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code) * multiplier;
+                positive = input_apply_deadzone_f(positive, binding->mapping0.deadzone);
+                f32 negative = input_key_value(binding->mapping1.device_id, sub_id, binding->mapping1.key_code) * multiplier;
+                negative = input_apply_deadzone_f(negative, binding->mapping1.deadzone);
                 value += positive - negative;
                 count++;
             }
         }
-        *out_value = count > 0 ? value / count : 0.0f;
+        *out_value = value;
         return true;
     }
     else if (action.type == INPUT_ACTION_TYPE_BUTTON)
@@ -271,9 +288,11 @@ bool input_action_previous_value(const char* action_name, u32 sub_id, f32* out_v
                 continue;
             }
 
+            f32 multiplier = binding->mapping0.inverted ? -1.0f : 1.0f;
             if (binding->axis_type == INPUT_ACTION_AXIS_TYPE_NATIVE)
             {
-                f32 tmp = input_key_previous_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code);
+                f32 tmp = input_key_previous_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code) * multiplier;
+                tmp = input_apply_deadzone_f(tmp, binding->mapping0.deadzone);
                 if (tmp != 0.0f)
                 {
                     value += tmp;
@@ -282,8 +301,10 @@ bool input_action_previous_value(const char* action_name, u32 sub_id, f32* out_v
             }
             else 
             {
-                f32 positive = input_key_previous_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code);
-                f32 negative = input_key_previous_value(binding->mapping1.device_id, sub_id, binding->mapping1.key_code);
+                f32 positive = input_key_previous_value(binding->mapping0.device_id, sub_id, binding->mapping0.key_code) * multiplier;
+                positive = input_apply_deadzone_f(positive, binding->mapping0.deadzone);
+                f32 negative = input_key_previous_value(binding->mapping1.device_id, sub_id, binding->mapping1.key_code) * multiplier;
+                negative = input_apply_deadzone_f(negative, binding->mapping1.deadzone);
                 value += positive - negative;
                 count++;
             }
@@ -478,29 +499,33 @@ bool input_action_ended(const char* action_name, u32 sub_id)
     return input_action_up(action_name, sub_id) && input_action_was_down(action_name, sub_id);
 }
 
-void input_register_device(InputDevice device)
+u32 input_register_device(InputDevice device)
 {
     if (!DEVICE_VALID(device))
     {
         log_error("Invalid input device %u", device.id);
-        return;
+        return INVALID_ID;
     }
 
+    u32 index = 0;
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
         if (input_state->input_devices[i].id == 0)
         {
             input_state->input_devices[i] = device;
+            index = i;
             break;
         }
     }
+
+    return index;
 }
 
-void input_unregister_device(u32 device_id)
+void input_unregister_device(u32 device_id, u32 sub_id)
 {
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
-        if (input_state->input_devices[i].id == device_id)
+        if (IS_SAME_DEVICE(input_state->input_devices[i], device_id, sub_id))
         {
             input_state->input_devices[i] = (InputDevice) {0};
             break;
@@ -592,7 +617,10 @@ void input_process_key(u32 device_id, u32 sub_id, u32 key_code, bool is_down)
     {
         if (input_state->input_devices[i].id == device_id)
         {
-            input_state->input_devices[i].process_key(sub_id, key_code, is_down);
+            if (input_state->input_devices[i].process_key)
+            {
+                input_state->input_devices[i].process_key(sub_id, key_code, is_down);
+            }
             break;
         }
     }
@@ -665,9 +693,10 @@ void* input_get_current_state(u32 device_id, u32 sub_id)
 
     for (u32 i = 0; i < input_state->max_devices; ++i)
     {
-        if (IS_SAME_DEVICE(input_state->input_devices[i], device_id, sub_id))
+        InputDevice* device = &input_state->input_devices[i];
+        if (IS_SAME_DEVICE(*device, device_id, sub_id))
         {
-            return input_state->input_devices[i].get_current_state(sub_id);
+            return device->get_current_state(sub_id);
         }
     }
 
@@ -696,4 +725,91 @@ u64 input_get_state_size(InputSystemConfig config)
 {
     return sizeof(InputState) + 
            sizeof(InputDevice) * config.max_devices;
+}
+
+
+bool input_is_connected(u32 device_id, u32 sub_id)
+{
+    if (!input_state)
+    {
+        return false;
+    }
+
+    for (u32 i = 0; i < input_state->max_devices; ++i)
+    {
+        if (IS_SAME_DEVICE(input_state->input_devices[i], device_id, sub_id) && input_state->input_devices[i].is_connected)
+        {
+            return input_state->input_devices[i].is_connected(sub_id);
+        }
+    }
+
+    return false;
+}
+
+bool input_on_connected(u32 device_id, void* handle)
+{
+    if (!input_state)
+    {
+        return false;
+    }
+
+    u32 sub_id = 0;
+    for (u32 i = 0; i < input_state->max_devices; ++i)
+    {
+        if (input_state->input_devices[i].id == device_id)
+        {
+            sub_id++;
+        }
+    }
+
+    // TODO: check for others
+    u32 index = 0;
+    switch (device_id)
+    {
+        case GAMEPAD_DEVICE_ID:
+        {
+            u32 type = DEVICE_TYPE_GAMEPAD_XBOX;
+            index = gamepad_register(sub_id, type);
+        } break;
+    }
+
+    platform_create_hid_device(handle, &input_state->input_devices[index].hid_device);
+
+    if (input_state->input_devices[index].on_connected)
+    {
+        input_state->input_devices[index].on_connected(sub_id, &input_state->input_devices[index]);
+    }
+
+    log_info("Device connected: %s", input_state->input_devices[index].hid_device.name);
+    log_info("Product: %s [id: %d]", input_state->input_devices[index].hid_device.product, input_state->input_devices[index].hid_device.product_id);
+    log_info("Manufacturer: %s [id: %d]", input_state->input_devices[index].hid_device.manufacturer, input_state->input_devices[index].hid_device.vendor_id);
+    log_info("Serial Number: %s", input_state->input_devices[index].hid_device.serial_number);
+
+    return true;
+}
+
+bool input_on_disconnected(void* handle)
+{
+    if (!input_state)
+    {
+        return false;
+    }
+
+    for (u32 i = 0; i < input_state->max_devices; ++i)
+    {
+        if (input_state->input_devices[i].hid_device.device_handle == handle)
+        {
+            if (input_state->input_devices[i].on_disconnected)
+            {
+                input_state->input_devices[i].on_disconnected(input_state->input_devices[i].sub_id);
+            }
+
+            log_info("Device %s disconnected", input_state->input_devices[i].hid_device.name);
+            platform_destroy_hid_device(&input_state->input_devices[i].hid_device);
+
+            input_unregister_device(input_state->input_devices[i].id, input_state->input_devices[i].sub_id);
+        }
+    }
+
+    return false;
 }

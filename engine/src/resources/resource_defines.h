@@ -197,24 +197,6 @@ typedef struct ShaderConfig
     const char** stage_files;
 } ShaderConfig;
 
-typedef enum DeviceType
-{
-    DEVICE_TYPE_UNKNOWN = 0,
-    DEVICE_TYPE_KEYBOARD,
-    DEVICE_TYPE_MOUSE,
-    DEVICE_TYPE_GAMEPAD,
-} DeviceType;
-
-typedef enum DeviceGamepadType
-{
-    DEVICE_TYPE_GAMEPAD_NONE,
-    DEVICE_TYPE_GAMEPAD_XBOX,
-    DEVICE_TYPE_GAMEPAD_DUALSHOCK4,
-    DEVICE_TYPE_GAMEPAD_SWITCH,
-    DEVICE_TYPE_GAMEPAD_STEAM,
-    DEVICE_TYPE_GAMEPAD_GENERIC
-} DeviceGamepadType;
-
 typedef struct DeviceInputActionConfig
 {
     char action_name[MAX_INPUTACTION_NAME_LENGTH];
@@ -224,6 +206,8 @@ typedef struct DeviceInputActionConfig
     char positive_axis_key_name[DEVICE_KEY_NAME_MAX_LENGTH];
     char negative_axis_key_name[DEVICE_KEY_NAME_MAX_LENGTH];
     char native_axis_key_name[DEVICE_KEY_NAME_MAX_LENGTH];
+    bool inverted;
+    f32 deadzone;
 } DeviceInputActionConfig;
 
 typedef struct DeviceConfig

@@ -7,6 +7,7 @@
 #include <lib/math/mat4.h>
 #include <core/event.h>
 #include <systems/resource_system.h>
+#include <lib/math/math.h>
 
 void update_view_matrix(Game* game)
 {
@@ -70,7 +71,7 @@ bool game_init(Game* game)
         {
             u32 code;
             hashtable_get(&keyboard_config->keys, action->key_name, &code);
-            input_action_bind_button(action->action_name, (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, code });
+            input_action_bind_button(action->action_name, (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, code, false, 0.0f });
         }
         else if (action->action_type == INPUT_ACTION_TYPE_AXIS)
         {
@@ -78,7 +79,7 @@ bool game_init(Game* game)
             {
                 u32 code;
                 hashtable_get(&keyboard_config->keys, action->native_axis_key_name, &code);
-                input_action_bind_native_axis(action->action_name, (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, code });
+                input_action_bind_native_axis(action->action_name, (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, code, false, 0.0f });
             } 
             else if (action->axis_type == INPUT_ACTION_AXIS_TYPE_VIRTUAL)
             {
@@ -87,8 +88,38 @@ bool game_init(Game* game)
                 hashtable_get(&keyboard_config->keys, action->negative_axis_key_name, &negative_code);
 
                 input_action_bind_virtual_axis(action->action_name, 
-                    (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, positive_code }, 
-                    (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, negative_code });
+                    (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, positive_code, false, 0.0f }, 
+                    (InputMapping) { KEYBOARD_DEVICE_ID, keyboard_config->sub_id, negative_code, false, 0.0f });
+            }
+        }
+    }
+
+    Resource gamepad_resource = { 0 };
+    resource_system_load("xbox_gamepad", RESOURCE_TYPE_DEVICE, &gamepad_resource);
+
+    DeviceConfig* gamepad_config = (DeviceConfig*) gamepad_resource.data;
+    if (gamepad_config == NULL)
+    {
+        log_error("Failed to load gamepad config");
+        return false;
+    }
+
+    for (u32 i = 0; i < gamepad_config->actions_count; ++i)
+    {
+        DeviceInputActionConfig* action = &gamepad_config->actions[i];
+        if (action->action_type == INPUT_ACTION_TYPE_BUTTON)
+        {
+            u32 code;
+            hashtable_get(&gamepad_config->keys, action->key_name, &code);
+            input_action_bind_button(action->action_name, (InputMapping) { GAMEPAD_DEVICE_ID, gamepad_config->sub_id, code, false, 0.0f });
+        }
+        else if (action->action_type == INPUT_ACTION_TYPE_AXIS)
+        {
+            if (action->axis_type == INPUT_ACTION_AXIS_TYPE_NATIVE)
+            {
+                u32 code;
+                hashtable_get(&gamepad_config->keys, action->native_axis_key_name, &code);
+                input_action_bind_native_axis(action->action_name, (InputMapping) { GAMEPAD_DEVICE_ID, gamepad_config->sub_id, code, action->inverted, action->deadzone });
             }
         }
     }
@@ -107,23 +138,8 @@ bool game_update(Game* game, f64 delta_time)
     input_action_value("yaw", 0, &yaw_input);
     input_action_value("pitch", 0, &pitch_input);
 
-    if (yaw_input > 0)
-    {
-        camera_yaw(game, 1.0f * delta_time);
-    }
-    else if (yaw_input < 0)
-    {
-        camera_yaw(game, -1.0f * delta_time);
-    }
-
-    if (pitch_input > 0)
-    {
-        camera_pitch(game, 1.0f * delta_time);
-    }
-    else if (pitch_input < 0)
-    {
-        camera_pitch(game, -1.0f * delta_time);
-    }
+    camera_yaw(game, yaw_input * delta_time);
+    camera_pitch(game, pitch_input * delta_time);
 
     /*if (input_key_up(KEYBOARD_DEVICE_ID, KEY_T) && input_key_was_down(KEYBOARD_DEVICE_ID, KEY_T))
     {
@@ -142,12 +158,14 @@ bool game_update(Game* game, f64 delta_time)
     if (forward != 0.0f)
     {
         Vec3 add = forward > 0.0f ? mat4_forward(state->view) : mat4_backward(state->view);
+        add = vec3_mul_scalar(add, math_abs(forward) * delta_time);
         velocity = vec3_add(velocity, add);
     }
 
     if (right != 0.0f)
     {
         Vec3 add = right > 0.0f ? mat4_right(state->view) : mat4_left(state->view);
+        add = vec3_mul_scalar(add, math_abs(right) * delta_time);
         velocity = vec3_add(velocity, add);
     }
 

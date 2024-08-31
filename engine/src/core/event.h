@@ -65,7 +65,12 @@ typedef enum SystemEventCode {
      */
     EVENT_CODE_MOUSE_WHEEL = 0x07,
 
-    EVENT_CODE_RESIZEd = 0x08,
+    // Resized/resolution changed from the OS.
+    /* Context usage:
+     * u16 width = data.data.u16[0];
+     * u16 height = data.data.u16[1];
+     */
+    EVENT_CODE_RESIZED = 0x08,
 
     EVENT_CODE_SET_RENDER_MODE = 0x09,
 
@@ -76,12 +81,8 @@ typedef enum SystemEventCode {
     EVENT_CODE_DEBUG3 = 0x13,
     EVENT_CODE_DEBUG4 = 0x14,
 
-    // Resized/resolution changed from the OS.
-    /* Context usage:
-     * u16 width = data.data.u16[0];
-     * u16 height = data.data.u16[1];
-     */
-    EVENT_CODE_RESIZED = 0x08,
+    EVENT_CODE_HID_DEVICE_CONNECTED = 0x15,
+    EVENT_CODE_HID_DEVICE_DISCONNECTED = 0x16,
 
     MAX_EVENT_CODE = 0xFF
 }  SystemEventCode;

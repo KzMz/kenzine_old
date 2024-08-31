@@ -158,3 +158,5 @@ void keyboard_process_key(u32 sub_id, u32 key, bool is_down);
 void keyboard_register(u32 sub_id);
 void* keyboard_get_current_state(u32 sub_id);
 void* keyboard_get_previous_state(u32 sub_id);
+
+bool keyboard_is_connected(u32 sub_id);
