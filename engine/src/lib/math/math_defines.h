@@ -86,3 +86,16 @@ typedef struct Vertex3d
     Vec4 color;
     Vec4 tangent;
 } Vertex3d;
+
+typedef struct Transform
+{
+    Vec3 position;
+    Quat rotation;
+    Vec3 scale;
+
+    bool is_dirty;
+
+    Mat4 local;
+
+    struct Transform* parent;
+} Transform;

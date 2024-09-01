@@ -8,11 +8,9 @@
 bool platform_gamepad_xbox_set_vibration(u32 sub_id, GamepadVibration vibration);
 void* platform_gamepad_xbox_get_current_state(u32 sub_id);
 
-bool platform_gamepad_xbox_button_down(u32 sub_id, u32 button);
-bool platform_gamepad_xbox_button_up(u32 sub_id, u32 button);
-bool platform_gamepad_xbox_button_was_down(u32 sub_id, u32 button);
-bool platform_gamepad_xbox_button_was_up(u32 sub_id, u32 button);
-
-f32 platform_gamepad_xbox_scalar_current_value(u32 sub_id, u32 button);
-f32 platform_gamepad_xbox_scalar_previous_value(u32 sub_id, u32 button);
-
+// TODO: to be defined
+// https://github.com/MysteriousJ/Joystick-Input-Examples/blob/main/src/combined.cpp
+// Generic gamepads, ps4 gamepads, switch gamepads, steam input api
+// Do we need input buffer? https://github.com/MysteriousJ/Joystick-Input-Examples/blob/main/src/rawinput_buffered.cpp
+// https://github.com/libusb/hidapi/blob/master/windows/hid.c
+// https://github.com/weigert/joycon-/blob/master/joycon-core/joycon-core.h

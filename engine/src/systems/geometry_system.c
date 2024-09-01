@@ -634,3 +634,23 @@ GeometryConfig geometry_system_generate_cube_config(
 
     return config;
 }
+
+void geometry_system_config_destroy(GeometryConfig* config)
+{
+    if (config == NULL) 
+    {
+        return;
+    }
+
+    if (config->vertices != NULL)
+    {
+        memory_free(config->vertices, sizeof(Vertex3d) * config->vertex_count, MEMORY_TAG_GEOMETRY);
+    }
+
+    if (config->indices != NULL)
+    {
+        memory_free(config->indices, sizeof(u32) * config->index_count, MEMORY_TAG_GEOMETRY);
+    }
+
+    memory_zero(config, sizeof(GeometryConfig));
+}

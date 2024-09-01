@@ -103,6 +103,7 @@ typedef struct Material
     TextureMap normal_map;
     f32 brightness;
     u64 shader_id;
+    u32 render_frame_number;
 } Material;
 
 typedef struct Geometry
@@ -113,6 +114,13 @@ typedef struct Geometry
     char name[GEOMETRY_NAME_MAX_LENGTH];
     Material* material;
 } Geometry;
+
+typedef struct Mesh
+{
+    Geometry** geometries;
+    u16 geometry_count;
+    Transform transform;
+} Mesh;
 
 typedef enum ShaderStage
 {

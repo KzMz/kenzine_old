@@ -47,3 +47,5 @@ GeometryConfig geometry_system_generate_cube_config(
     const char* name, 
     const char* material_name
 );
+
+void geometry_system_config_destroy(GeometryConfig* config);

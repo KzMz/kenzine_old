@@ -110,6 +110,7 @@ bool material_system_init(void* state, MaterialSystemConfig config)
         material_system_state->materials[i].generation = INVALID_ID;
         material_system_state->materials[i].id = INVALID_ID;
         material_system_state->materials[i].internal_id = INVALID_ID;
+        material_system_state->materials[i].render_frame_number = INVALID_ID;
     }
 
     if (!create_default_material(material_system_state))
@@ -406,6 +407,7 @@ void destroy_material(Material* material)
     material->id = INVALID_ID;
     material->generation = INVALID_ID;
     material->internal_id = INVALID_ID;
+    material->render_frame_number = INVALID_ID;
 }
 
 bool create_default_material(MaterialSystemState* state)

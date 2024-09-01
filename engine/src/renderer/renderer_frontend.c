@@ -123,6 +123,8 @@ void renderer_shutdown(void)
 
 bool renderer_draw_frame(RenderPacket* packet)
 {
+    renderer_state->backend.frame_number++;
+
     if (renderer_state->backend.begin_frame(&renderer_state->backend, packet->delta_time))
     {
         if (!renderer_state->backend.begin_renderpass(&renderer_state->backend, BUILTIN_RENDERPASS_WORLD))
@@ -162,10 +164,15 @@ bool renderer_draw_frame(RenderPacket* packet)
                 mat = material_system_get_default();
             }
 
-            if (!material_system_apply_instance(mat))
+            if (mat->render_frame_number != renderer_state->backend.frame_number)
             {
-                log_warning("Failed to apply material instance %s. Skipping geometry...", mat->name);
-                return false;
+                if (!material_system_apply_instance(mat))
+                {
+                    log_warning("Failed to apply material instance %s. Skipping geometry...", mat->name);
+                    continue;
+                }
+                
+                mat->render_frame_number = renderer_state->backend.frame_number;
             }
 
             material_system_apply_local(mat, &packet->geometries[i].model);

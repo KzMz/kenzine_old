@@ -19,6 +19,8 @@
 #include "lib/math/mat4.h"
 #include "lib/math/quat.h"
 #include "lib/math/geometry_utils.h"
+#include "lib/containers/dyn_array.h"
+#include "lib/math/transform.h"
 
 typedef struct AppState
 {
@@ -60,7 +62,9 @@ typedef struct AppState
     void* geometry_system_state;
     u64 geometry_system_state_size;
 
-    Geometry* test_geometry;
+    Mesh meshes[10];
+    u32 mesh_count;
+
     Geometry* test_ui_geometry;
 } AppState;
 
@@ -216,15 +220,42 @@ KENZINE_API bool app_init(Game* game)
         return false;
     }
 
-    //GeometryConfig plane_config = geometry_system_generate_plane_config(10.0f, 10.0f, 5, 5, 2.0f, 2.0f, "test geometry", "test_material");
-    //app_state->test_geometry = geometry_system_acquire_from_config(plane_config, true);
+    app_state->mesh_count = 0;
 
+    Mesh* cube_mesh = &app_state->meshes[app_state->mesh_count];
+    cube_mesh->geometry_count = 1;
+    cube_mesh->geometries = memory_alloc(sizeof(Geometry*) * cube_mesh->geometry_count, MEMORY_TAG_GEOMETRY);
     GeometryConfig cube_config = geometry_system_generate_cube_config(10.0f, 10.0f, 10.0f, 1.0f, 1.0f, "test_cube", "test_material");
     geometry_generate_tangents(cube_config.vertex_count, cube_config.vertices, cube_config.index_count, cube_config.indices);
-    app_state->test_geometry = geometry_system_acquire_from_config(cube_config, true);
+    cube_mesh->geometries[0] = geometry_system_acquire_from_config(cube_config, true);
+    cube_mesh->transform = transform_create();
+    app_state->mesh_count++;
 
-    memory_free(cube_config.vertices, sizeof(Vertex3d) * cube_config.vertex_count, MEMORY_TAG_APP);
-    memory_free(cube_config.indices, sizeof(u32) * cube_config.index_count, MEMORY_TAG_APP);
+    geometry_system_config_destroy(&cube_config);
+
+    Mesh* cube_mesh2 = &app_state->meshes[app_state->mesh_count];
+    cube_mesh2->geometry_count = 1;
+    cube_mesh2->geometries = memory_alloc(sizeof(Geometry*) * cube_mesh2->geometry_count, MEMORY_TAG_GEOMETRY);
+    cube_config = geometry_system_generate_cube_config(5.0f, 5.0f, 5.0f, 1.0f, 1.0f, "test_cube2", "test_material");
+    geometry_generate_tangents(cube_config.vertex_count, cube_config.vertices, cube_config.index_count, cube_config.indices);
+    cube_mesh2->geometries[0] = geometry_system_acquire_from_config(cube_config, true);
+    cube_mesh2->transform = transform_from_position((Vec3) { 10, 0, 1 });
+    transform_set_parent(&cube_mesh2->transform, &cube_mesh->transform);
+    app_state->mesh_count++;
+
+    geometry_system_config_destroy(&cube_config);
+
+    Mesh* cube_mesh3 = &app_state->meshes[app_state->mesh_count];
+    cube_mesh3->geometry_count = 1;
+    cube_mesh3->geometries = memory_alloc(sizeof(Geometry*) * cube_mesh3->geometry_count, MEMORY_TAG_GEOMETRY);
+    cube_config = geometry_system_generate_cube_config(2.0f, 2.0f, 2.0f, 1.0f, 1.0f, "test_cube3", "test_material");
+    geometry_generate_tangents(cube_config.vertex_count, cube_config.vertices, cube_config.index_count, cube_config.indices);
+    cube_mesh3->geometries[0] = geometry_system_acquire_from_config(cube_config, true);
+    cube_mesh3->transform = transform_from_position((Vec3) { 5, 0, 1 });
+    transform_set_parent(&cube_mesh3->transform, &cube_mesh2->transform);
+    app_state->mesh_count++;
+
+    geometry_system_config_destroy(&cube_config);
 
     GeometryConfig ui_config;
     ui_config.vertex_count = 4;
@@ -307,17 +338,41 @@ KENZINE_API bool app_run(void)
             RenderPacket packet = {0};
             packet.delta_time = delta_time;
             
-            GeometryRenderData render_data = {0};
-            render_data.geometry = app_state->test_geometry;
-            //render_data.model = mat4_identity();
+            if (app_state->mesh_count > 0)
+            {
+                packet.geometries = dynarray_create(GeometryRenderData);
 
-            static f32 angle = 0;
-            angle += (1.0f * delta_time);
-            Quat rot = quat_from_axis_angle((Vec3) { 0, 1, 0 }, angle, true);
-            render_data.model = quat_to_mat4(rot);
+                Quat rotation = quat_from_axis_angle((Vec3) { 0, 1, 0 }, 0.5f * delta_time, false);
+                transform_rotate(&app_state->meshes[0].transform, rotation);
 
-            packet.geometries = &render_data;
-            packet.geometry_count = 1;
+                if (app_state->mesh_count > 1)
+                {
+                    transform_rotate(&app_state->meshes[1].transform, rotation);
+                }
+
+                if (app_state->mesh_count > 2)
+                {
+                    transform_rotate(&app_state->meshes[2].transform, rotation);
+                }
+
+                for (u32 i = 0; i < app_state->mesh_count; ++i)
+                {
+                    Mesh* mesh = &app_state->meshes[i];
+                    for (u32 j = 0; j < mesh->geometry_count; ++j)
+                    {
+                        GeometryRenderData render_data = {0};
+                        render_data.geometry = mesh->geometries[j];
+                        render_data.model = transform_get_world(&mesh->transform);
+                        dynarray_push(packet.geometries, render_data);
+                        packet.geometry_count++;
+                    }
+                }
+            }
+            else 
+            {
+                packet.geometries = NULL;
+                packet.geometry_count = 0;
+            }
 
             GeometryRenderData ui_render_data = {0};
             ui_render_data.geometry = NULL;
@@ -326,7 +381,13 @@ KENZINE_API bool app_run(void)
             packet.ui_geometry_count = 0;
             packet.ui_geometries = &ui_render_data;
 
-            renderer_draw_frame(&packet);
+            renderer_draw_frame(&packet); 
+
+            if (packet.geometries != NULL)
+            {
+                dynarray_destroy(packet.geometries);
+                packet.geometries = NULL;
+            }
 
             f64 frame_end_time = platform_get_absolute_time();
             f64 frame_elapsed_time = frame_end_time - frame_start_time;
